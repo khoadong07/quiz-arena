@@ -2,17 +2,47 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const path = require('path');
+const compression = require('compression');
 
 const app = express();
+
+// ── Gzip all responses ──
+app.use(compression({ level: 6 }));
+
 app.use(cors());
 app.use(express.json());
+
+// ── Serve Vite build in production ──
+if (process.env.NODE_ENV === 'production') {
+  const distPath = path.join(__dirname, '../client/dist');
+
+  // Hashed assets (JS/CSS/img/audio) → 1 year immutable cache
+  app.use('/assets', express.static(path.join(distPath, 'assets'), {
+    maxAge: '1y',
+    immutable: true,
+  }));
+
+  // Root static files (favicon, icons) → 1 day
+  app.use(express.static(distPath, { maxAge: '1d' }));
+
+  // SPA fallback - always serve index.html with no-cache
+  app.get('*', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST']
-  }
+    methods: ['GET', 'POST'],
+  },
+  // Socket.IO performance tuning
+  pingInterval: 10000,
+  pingTimeout: 5000,
+  transports: ['websocket', 'polling'],
 });
 
 // In-memory store
@@ -178,7 +208,7 @@ io.on('connection', (socket) => {
     }
 
     room.status = 'playing';
-    room.timeLeft = 10; // 10s per question
+    room.timeLeft = 20; // 20s per question
     
     const currentQ = room.questions[room.currentQuestionIndex];
     const questionDataForPlayer = {
@@ -186,7 +216,7 @@ io.on('connection', (socket) => {
       question: currentQ.question,
       image: currentQ.image || null,
       choices: currentQ.choices,
-      time: 10
+      time: 20
     };
 
     io.to(roomId).emit('new-question', questionDataForPlayer);
@@ -228,7 +258,7 @@ io.on('connection', (socket) => {
     if (player && !player.answeredCurrent) {
       player.answeredCurrent = true;
       player.currentAnswer = answerIndex;
-      player.answerTime = 10 - room.timeLeft; // Record time taken
+      player.answerTime = 20 - room.timeLeft; // Record time taken
       // Tell admin someone answered
       io.to(room.adminId).emit('player-answered', room.players);
       
@@ -295,7 +325,10 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = 3001;
+// Health check endpoint for Docker
+app.get('/health', (_, res) => res.json({ status: 'ok', rooms: Object.keys(rooms).length }));
+
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`Server listening on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
 });

@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Users, Play, Trophy, Clock, CheckCircle2, Check, X } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { socket } from '../socket';
+import bg from '../assets/1.jpg';
 
 import theme1 from "../audio/theme/Calvin Harris - Outside (Lyrics) ft. Ellie Goulding.mp3";
 import theme2 from "../audio/theme/Cinematic Rock Racing by Infraction [No Copyright Music] _ Riders.mp3";
@@ -115,8 +116,8 @@ export default function AdminDashboard() {
 
   const joinUrl = `${window.location.protocol}//${window.location.host}/join?otp=${otp}`;
   const maxPlayers = 50;
-  const timerColor = timeLeft > 20 ? 'var(--success)' : timeLeft > 10 ? 'var(--warning)' : 'var(--danger)';
-  const timerPct = Math.round((timeLeft / 60) * 100);
+  const timerColor = timeLeft > 10 ? 'var(--success)' : timeLeft > 5 ? 'var(--warning)' : 'var(--danger)';
+  const timerPct = Math.round((timeLeft / 20) * 100);
   const medals = ['🥇', '🥈', '🥉'];
   const choiceColors = ['var(--choice-a)', 'var(--choice-b)', 'var(--choice-c)', 'var(--choice-d)'];
   const choiceLabels = ['A', 'B', 'C', 'D'];
@@ -140,7 +141,7 @@ export default function AdminDashboard() {
   if (status === 'waiting') return (
     <>
       {audioNodes}
-      <div className="admin-screen">
+      <div className="admin-screen" style={{backgroundImage: `linear-gradient(rgba(10,14,30,0.72), rgba(10,14,30,0.82)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat'}}>
         <div className="admin-hero" style={{ alignItems: 'center', textAlign: 'center', padding: '2rem 1.25rem' }}>
           <div className="qr-box" style={{ marginBottom: '1.5rem', padding: '1.5rem', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
             <QRCodeSVG value={joinUrl} size={220} />

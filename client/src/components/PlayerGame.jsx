@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { socket } from '../socket';
+import bg from '../assets/19.jpg';
 
 import theme1 from "../audio/theme/Calvin Harris - Outside (Lyrics) ft. Ellie Goulding.mp3";
 import theme2 from "../audio/theme/Cinematic Rock Racing by Infraction [No Copyright Music] _ Riders.mp3";
@@ -111,8 +112,8 @@ export default function PlayerGame() {
   const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${sessionData?.nickname || 'Player'}`;
   const avatarToUse = sessionData?.avatar || defaultAvatar;
 
-  const timerColor = timeLeft > 20 ? 'var(--success)' : timeLeft > 10 ? 'var(--warning)' : 'var(--danger)';
-  const timerPct = Math.round((timeLeft / 10) * 100);
+  const timerColor = timeLeft > 10 ? 'var(--success)' : timeLeft > 5 ? 'var(--warning)' : 'var(--danger)';
+  const timerPct = Math.round((timeLeft / 20) * 100);
 
   const THEMES = [theme1, theme2];
   const seed = (sessionData?.otp || '').toString().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -167,7 +168,7 @@ export default function PlayerGame() {
       {audioNodes}
       {showExitConfirm && exitModalNode}
       {headerNode}
-      <div className="screen-center" style={{ flex: 1, paddingTop: '2rem' }}>
+      <div className="screen-center" style={{ flex: 1, paddingTop: '2rem', backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="card" style={{ textAlign: 'center', gap: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Loader2 size={48} style={{ color: 'var(--primary)', animation: 'spin 1.2s linear infinite' }} />
           <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Đã vào phòng!</h2>
@@ -187,7 +188,7 @@ export default function PlayerGame() {
       {audioNodes}
       {showExitConfirm && exitModalNode}
       {headerNode}
-      <div className="screen-center" style={{ flex: 1 }}>
+      <div className="screen-center" style={{ flex: 1, backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div style={{ textAlign: 'center' }}>
           <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Bắt đầu sau</p>
           <div className="countdown-big">{countdown}</div>
@@ -202,7 +203,7 @@ export default function PlayerGame() {
       {audioNodes}
       {showExitConfirm && exitModalNode}
       {headerNode}
-      <div className="screen" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div className="screen" style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
         {/* Timer + question number row */}
         <div className="game-header" style={{ marginTop: '0.5rem' }}>
           <span className="question-number">Câu {(questionData?.index ?? 0) + 1}</span>
