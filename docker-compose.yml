@@ -21,7 +21,7 @@ services:
       context: client
       dockerfile: Dockerfile
     ports:
-      - "8009:80"
+      - "18009:80"
     restart: unless-stopped
     depends_on:
       - server
