@@ -2,8 +2,8 @@ services:
   # ── Node API + WebSocket server ─────────────────────────
   server:
     build:
-      context: .
-      dockerfile: server/Dockerfile
+      context: server
+      dockerfile: Dockerfile
     ports:
       - "3001:3001"
     environment:

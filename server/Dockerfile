@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY package*.json ./
 # Only production deps
-RUN npm ci --only=production --prefer-offline
+RUN npm ci --omit=dev --prefer-offline
 
 COPY . .
 
