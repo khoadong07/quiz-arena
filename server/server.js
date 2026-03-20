@@ -13,20 +13,21 @@ app.use(compression({ level: 6 }));
 app.use(cors());
 app.use(express.json());
 
-// ── Serve Vite build in production ──
-if (process.env.NODE_ENV === 'production') {
+// ── Serve Vite build (only when running standalone, not behind Nginx) ──
+// Set SERVE_CLIENT=true if you want Express to serve the frontend directly
+if (process.env.SERVE_CLIENT === 'true') {
   const distPath = path.join(__dirname, '../client/dist');
 
-  // Hashed assets (JS/CSS/img/audio) → 1 year immutable cache
+  // Hashed assets → 1 year immutable cache
   app.use('/assets', express.static(path.join(distPath, 'assets'), {
     maxAge: '1y',
     immutable: true,
   }));
 
-  // Root static files (favicon, icons) → 1 day
+  // Root static files
   app.use(express.static(distPath, { maxAge: '1d' }));
 
-  // SPA fallback - always serve index.html with no-cache
+  // SPA fallback
   app.get('*', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(path.join(distPath, 'index.html'));
