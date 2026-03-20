@@ -1,0 +1,62 @@
+[
+  {
+    "question": "Trong JavaScript, từ khóa nào dùng để khai báo hằng số?",
+    "image": "https://plus.unsplash.com/premium_photo-1663040330559-001d247cedf1?q=80&w=600&auto=format&fit=crop",
+    "choices": ["var", "let", "const", "function"],
+    "correct": 2
+  },
+  {
+    "question": "Thẻ HTML nào sau đây dùng để tạo một liên kết (đường dẫn)?",
+    "image": "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=600&auto=format&fit=crop",
+    "choices": ["<a>", "<link>", "<href>", "<nav>"],
+    "correct": 0
+  },
+  {
+    "question": "Thư viện React được phát triển bởi công ty nào?",
+    "image": "https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=600&auto=format&fit=crop",
+    "choices": ["Google", "Facebook (Meta)", "Microsoft", "Twitter"],
+    "correct": 1
+  },
+  {
+    "question": "CSS là viết tắt của từ gì?",
+    "image": "https://images.unsplash.com/photo-1507721999472-8ed4421c4af2?q=80&w=600&auto=format&fit=crop",
+    "choices": ["Cascading Style Sheets", "Creative Style System", "Computer Style Sheets", "Colorful Style System"],
+    "correct": 0
+  },
+  {
+    "question": "Mảng (Array) trong JavaScript bắt đầu từ vị trí chỉ mục (index) nào?",
+    "image": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=600&auto=format&fit=crop",
+    "choices": ["1", "-1", "0", "undefined"],
+    "correct": 2
+  },
+  {
+    "question": "Lệnh nào dùng để cài đặt các package trong Node.js (thông qua CLI)?",
+    "image": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=600&auto=format&fit=crop",
+    "choices": ["node install", "npm install", "install js", "npm get"],
+    "correct": 1
+  },
+  {
+    "question": "Trong CSS, thuộc tính nào dùng để in đậm nội dung văn bản?",
+    "image": "https://images.unsplash.com/photo-1542831371-32f555c86880?q=80&w=600&auto=format&fit=crop",
+    "choices": ["text-style: bold;", "font-weight: bold;", "text-decoration: bold;", "font-style: bold;"],
+    "correct": 1
+  },
+  {
+    "question": "Hook nào trong React được sử dụng để quản lý state (trạng thái) của một component?",
+    "image": "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=600&auto=format&fit=crop",
+    "choices": ["useEffect", "useContext", "useReducer", "useState"],
+    "correct": 3
+  },
+  {
+    "question": "Điều nào sau đây KHÔNG PHẢI là một hệ quản trị cơ sở dữ liệu?",
+    "image": "https://images.unsplash.com/photo-1555949963-aa79dcee981c?q=80&w=600&auto=format&fit=crop",
+    "choices": ["MySQL", "MongoDB", "PostgreSQL", "Node.js"],
+    "correct": 3
+  },
+  {
+    "question": "Kết quả của đoạn mã JavaScript sau là gì: `console.log(typeof null);`?",
+    "image": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600&auto=format&fit=crop",
+    "choices": ["\"null\"", "\"undefined\"", "\"object\"", "\"boolean\""],
+    "correct": 2
+  }
+]

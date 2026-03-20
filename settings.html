@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Charset: matn kodlash (emoji, maxsus belgilar uchun) -->
+    <meta charset="UTF-8" />
+
+    <!-- Responsive dizayn uchun viewport -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Sahifa nomi -->
+    <title>Khoot Clone</title>
+
+    <!-- ===================== CSS ===================== -->
+    <!-- Asosiy stillar -->
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- ===================== JS ===================== -->
+    <!-- Navbar logikasi (Home / Settings bosishlar) -->
+    <script src="JS/navbar.js" type="module" defer></script>
+
+    <!-- Settings sahifasi logikasi -->
+    <script src="JS/settings.js" type="module" defer></script>
+  </head>
+
+  <body>
+    <!-- ===================== NAVBAR ===================== -->
+    <div class="navbar">
+      <div class="nav-container">
+
+        <!-- Logo / Brand nomi -->
+        <div class="logo">Khoot Clone</div>
+
+        <!-- Navigatsiya linklari -->
+        <nav>
+          <!-- Home sahifaga qaytish -->
+          <a href="#" id="home">Home</a>
+
+          <!-- Settings sahifasini ochish -->
+          <a href="#" id="settings">Settings</a>
+        </nav>
+
+      </div>
+    </div>
+
+    <!-- ===================== SETTINGS SECTION ===================== -->
+    <!-- Quiz sozlamalari uchun blok -->
+    <section class="settings" id="settings-content">
+
+      <!-- Settings form -->
+      <form id="settings-form">
+
+        <!-- ===================== QUESTION AMOUNT ===================== -->
+        <!-- Nechta savol bo‘lishini tanlash -->
+        <select name="amount" id="amount-questions">
+          <option value="">Question amount</option>
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+          <option value="25">25</option>
+        </select>
+
+        <!-- ===================== DIFFICULTY ===================== -->
+        <!-- Savollar qiyinlik darajasi -->
+        <select name="difficulty" id="difficulty-questions">
+          <option value="">Question Difficulty</option>
+          <option value="easy">easy</option>
+          <option value="medium">medium</option>
+          <option value="hard">hard</option>
+        </select>
+
+        <!-- ===================== TIMER ===================== -->
+        <!-- Har bir savol uchun vaqt -->
+        <select name="timer" id="timer-questions">
+          <option value="">Question timer</option>
+          <option value="5">5 sekund</option>
+          <option value="10">10 sekund</option>
+          <option value="20">20 sekund</option>
+        </select>
+
+        <!-- ===================== CATEGORY ===================== -->
+        <!-- Savol kategoriyasi (JS orqali to‘ldiriladi) -->
+        <select name="category" id="category-questions">
+          <option value="">Question Category</option>
+        </select>
+
+        <!-- ===================== SAVE BUTTON ===================== -->
+        <!-- Tanlangan sozlamalarni saqlash -->
+        <button type="submit">Save settings</button>
+
+      </form>
+    </section>
+  </body>
+</html>

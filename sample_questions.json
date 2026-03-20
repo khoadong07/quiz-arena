@@ -1,0 +1,112 @@
+[
+  {
+    "question": "Ai là người sáng lập ra nước Việt Nam Dân chủ Cộng hòa?",
+    "image": "https://upload.wikimedia.org/wikipedia/commons/b/b9/Flag_of_North_Vietnam_%281945%E2%80%931955%29.svg",
+    "choices": [
+      "Phan Bội Châu",
+      "Nguyễn Ái Quốc",
+      "Võ Nguyên Giáp",
+      "Trường Chinh"
+    ],
+    "correct": 1
+  },
+  {
+    "question": "Ngày Quốc khánh của Việt Nam là ngày nào?",
+    "image": "https://upload.wikimedia.org/wikipedia/commons/f/ff/Ba_Dinh_Square_September_2nd%2C_1945.jpg",
+    "choices": [
+      "2 tháng 9",
+      "30 tháng 4",
+      "1 tháng 5",
+      "10 tháng 3"
+    ],
+    "correct": 0
+  },
+  {
+    "question": "Múa sạp là một loại hình nghệ thuật truyền thống của dân tộc nào?",
+    "image": "https://vanhoa247.net/wp-content/uploads/2022/10/mua-sap-2.jpg",
+    "choices": [
+      "Tày",
+      "H'mông",
+      "Mường",
+      "Kinh"
+    ],
+    "correct": 3
+  },
+  {
+    "question": "Nơi nào được mệnh danh là ‘Kinh đô ánh sáng’ của Việt Nam?",
+    "image": "https://vinhomesland.vn/wp-content/uploads/2023/05/quang-truong-kinh-do-anh-sang-vinhomes-ocean-park-2.jpg",
+    "choices": [
+      "Hà Nội",
+      "Hồ Chí Minh",
+      "Huế",
+      "Đà Nẵng"
+    ],
+    "correct": 0
+  },
+  {
+    "question": "Sự kiện lịch sử nào diễn ra vào ngày 30 tháng 4 năm 1975?",
+    "image": "https://file3.qdnd.vn/data/images/0/2025/04/16/upload_2072/doc%20lap.jpg?dpi=150&quality=100&w=870",
+    "choices": [
+      "Ngày giải phóng miền Nam",
+      "Ngày chiến thắng Điện Biên Phủ",
+      "Ngày bắt đầu chiến tranh Việt Nam",
+      "Ngày quốc khánh"
+    ],
+    "correct": 0
+  },
+  {
+    "question": "Đâu là món ăn truyền thống nổi tiếng của người miền Nam Việt Nam?",
+    "image": "https://cdn2.fptshop.com.vn/unsafe/800x0/dac_san_mien_nam_a5ddde23c7.jpg",
+    "choices": [
+      "Bánh chưng",
+      "Bánh xèo",
+      "Phở",
+      "Chả giò"
+    ],
+    "correct": 1
+  },
+  {
+    "question": "Tác phẩm ‘Dế Mèn Phiêu Lưu Ký’ là của tác giả nào?",
+    "image": "https://vcdn1-giaitri.vnecdn.net/2025/01/06/de-me-n-phie-u-lu-u-ky-1736177-8684-1857-1736178205.jpg?w=1200&h=0&q=100&dpr=1&fit=crop&s=H9fy5n8uQ6r-_OnkVJtJxQ",
+    "choices": [
+      "Nguyễn Du",
+      "Tô Hoài",
+      "Vũ Trọng Phụng",
+      "Lỗ Tấn"
+    ],
+    "correct": 1
+  },
+  {
+    "question": "Người ta gọi chiếc áo dài truyền thống của Việt Nam là gì?",
+    "image": "https://bizweb.dktcdn.net/100/326/676/files/ao-dai-truyen-thong-6.webp?v=1727877987647",
+    "choices": [
+      "Áo bà ba",
+      "Áo dài",
+      "Áo tứ thân",
+      "Áo nón"
+    ],
+    "correct": 1
+  },
+  {
+    "question": "Chợ Bến Thành nằm ở thành phố nào?",
+    "image": "https://cdn3.ivivu.com/2022/10/cho_ben_thanh_ivivu.jpeg",
+    "choices": [
+      "Hà Nội",
+      "Đà Nẵng",
+      "Hồ Chí Minh",
+      "Cần Thơ"
+    ],
+    "correct": 2
+  },
+  {
+    "question": "Hồ Gươm nằm ở đâu?",
+    "image": "https://i2.ex-cdn.com/crystalbay.com/files/content/2025/02/04/thap-rua-ho-guom-tho-ai-1-1531.jpg",
+    "choices": [
+      "Hà Nội",
+      "Huế",
+      "Sài Gòn",
+      "Đà Nẵng"
+    ],
+    "correct": 0
+  }
+]

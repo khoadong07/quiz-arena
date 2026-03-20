@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Storage Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .player { display: flex; justify-content: space-between; padding: 5px; border-bottom: 1px solid #eee; }
+        .rank { font-weight: bold; }
+        .name { flex: 1; margin-left: 10px; }
+        .score { margin-left: 10px; }
+        button { margin: 10px 5px; padding: 10px; }
+        input { padding: 8px; margin: 10px 0; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Player Storage Demo</h1>
+
+    <h2>Add New Player</h2>
+    <input type="text" id="playerName" placeholder="Enter player name">
+    <button onclick="addPlayer()">Add Player</button>
+
+    <h2>Update Player Score</h2>
+    <select id="playerSelect"></select>
+    <input type="number" id="newScore" placeholder="New score" min="0">
+    <button onclick="updateScore()">Update Score</button>
+
+    <h2>Top 3 Players</h2>
+    <div id="leaderboard"></div>
+
+    <button onclick="clearAll()">Clear All Data</button>
+
+    <script>
+        // Function to add a new player
+        function addPlayer() {
+            const name = document.getElementById('playerName').value.trim();
+            if (!name) {
+                alert('Please enter a player name');
+                return;
+            }
+
+            // Get existing players array or create empty array
+            const players = JSON.parse(localStorage.getItem("players")) || [];
+
+            // Check if player already exists
+            const existingPlayerIndex = players.findIndex(player => player.name === name);
+
+            if (existingPlayerIndex === -1) {
+                // Add new player with score 0
+                players.push({ name: name, score: 0 });
+                localStorage.setItem("players", JSON.stringify(players));
+                document.getElementById('playerName').value = '';
+                updateLeaderboard();
+                updatePlayerSelect();
+                alert(`Player "${name}" added successfully!`);
+            } else {
+                alert(`Player "${name}" already exists!`);
+            }
+        }
+
+        // Function to update a player's score (keeps highest score)
+        function updateScore() {
+            const playerName = document.getElementById('playerSelect').value;
+            const newScore = parseInt(document.getElementById('newScore').value);
+
+            if (!playerName) {
+                alert('Please select a player');
+                return;
+            }
+
+            if (isNaN(newScore) || newScore < 0) {
+                alert('Please enter a valid score');
+                return;
+            }
+
+            // Get players array and update score (keep highest)
+            const players = JSON.parse(localStorage.getItem("players")) || [];
+            const playerIndex = players.findIndex(player => player.name === playerName);
+
+            if (playerIndex !== -1) {
+                const oldScore = players[playerIndex].score;
+                players[playerIndex].score = Math.max(oldScore, newScore);
+                localStorage.setItem("players", JSON.stringify(players));
+                document.getElementById('newScore').value = '';
+                updateLeaderboard();
+                updatePlayerSelect();
+                if (newScore > oldScore) {
+                    alert(`Score updated for "${playerName}"! New high score: ${newScore}`);
+                } else {
+                    alert(`Score not updated for "${playerName}". Current high score: ${oldScore} (attempted: ${newScore})`);
+                }
+            }
+        }
+
+        // Function to update the leaderboard display
+        function updateLeaderboard() {
+            const leaderboard = document.getElementById('leaderboard');
+            const players = JSON.parse(localStorage.getItem("players")) || [];
+
+            // Sort players by score (highest first)
+            const sortedPlayers = players.sort((a, b) => b.score - a.score);
+
+            // Take only top 3 players
+            const topPlayers = sortedPlayers.slice(0, 3);
+
+            // Generate HTML for leaderboard
+            leaderboard.innerHTML = topPlayers.map((player, index) => `
+                <div class="player">
+                    <span class="rank">${index + 1}</span>
+                    <span class="name">${player.name}</span>
+                    <span class="score">${player.score}</span>
+                </div>
+            `).join('');
+
+            // If fewer than 3 players, show empty slots
+            while (leaderboard.children.length < 3) {
+                const emptySlot = document.createElement('div');
+                emptySlot.className = 'player';
+                emptySlot.innerHTML = `
+                    <span class="rank">${leaderboard.children.length + 1}</span>
+                    <span class="name">—</span>
+                    <span class="score">0</span>
+                `;
+                leaderboard.appendChild(emptySlot);
+            }
+        }
+
+        // Function to update the player select dropdown
+        function updatePlayerSelect() {
+            const select = document.getElementById('playerSelect');
+            const players = JSON.parse(localStorage.getItem("players")) || [];
+
+            select.innerHTML = '<option value="">Select player...</option>';
+            players.forEach(player => {
+                const option = document.createElement('option');
+                option.value = player.name;
+                option.textContent = `${player.name} (Score: ${player.score})`;
+                select.appendChild(option);
+            });
+        }
+
+        // Function to clear all data
+        function clearAll() {
+            if (confirm('Are you sure you want to clear all player data?')) {
+                localStorage.removeItem("players");
+                localStorage.removeItem("currentPlayer");
+                updateLeaderboard();
+                updatePlayerSelect();
+                document.getElementById('playerName').value = '';
+                document.getElementById('newScore').value = '';
+                alert('All data cleared!');
+            }
+        }
+
+        // Initialize on page load
+        updateLeaderboard();
+        updatePlayerSelect();
+    </script>
+</body>
+</html>

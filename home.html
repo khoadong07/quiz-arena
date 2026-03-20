@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Khoot Clone</title>
+
+    <!-- ===================== CSS ===================== -->
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- ===================== JS ===================== -->
+    <script type="module" src="JS/home.js" defer></script>
+    <script src="JS/user.js" defer></script>
+    <script src="JS/navbar.js" defer></script>
+  </head>
+
+  <body>
+    <!-- ===================== NAVBAR ===================== -->
+    <div class="navbar">
+      <div class="nav-container">
+        <!-- Logo / Brand -->
+        <div class="logo">Khoot Clone</div>
+
+        <!-- Navigation -->
+        <nav>
+          <!-- Home sahifaga qaytish -->
+          <a href="#" id="home">Home</a>
+
+          <!-- Settings sahifasini ochish -->
+          <a href="#" id="settings">Settings</a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- ===================== MAIN CONTENT ===================== -->
+    <div class="main-content">
+      <!-- ===================== START CONTAINER ===================== -->
+      <!-- Quiz boshlanishdan oldin ko'rinadi -->
+      <div id="startContainer" class="start-container">
+        <h2 id="welcomeMessage">Salom!</h2>
+        <p>Tayyormisiz? Quiz boshlash uchun tugmani bosing.</p>
+        <button id="startQuizBtn">Start Quiz</button>
+      </div>
+
+      <!-- ===================== LOADING SCREEN ===================== -->
+      <!-- Savollar yuklanayotganda ko‘rinadi -->
+      <div id="loadingContainer" class="loading-container hidden">
+        <div class="loading-spinner"></div>
+        <p>Loading questions...</p>
+      </div>
+
+      <!-- ===================== QUIZ CONTAINER ===================== -->
+      <!-- Asosiy quiz bloki (start bosilgandan keyin ochiladi) -->
+      <section class="questions-container hidden" id="questionsContainer">
+        <!-- ===================== QUESTION TEXT ===================== -->
+        <!-- Hozirgi savol -->
+        <p class="questions hidden">Hello word</p>
+
+        <!-- ===================== TIMER ===================== -->
+        <!-- Savol uchun vaqt paneli -->
+        <div class="timer-container">
+          <div class="timer-bar" id="timerBar"></div>
+          <div class="timer-text" id="timerText">🕒 10</div>
+        </div>
+
+        <!-- ===================== ANSWERS ===================== -->
+        <!-- Variantlar (A, B, C, D) -->
+        <div class="answer-container hidden">
+          <div class="answer a"></div>
+          <div class="answer b"></div>
+          <div class="answer c"></div>
+          <div class="answer d"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================== LEADERBOARD ===================== -->
+    <!-- Eng yaxshi 3 o‘yinchi -->
+    <aside class="leaderboard-sidebar">
+      <!-- Leaderboard sarlavhasi -->
+      <h2>Top 3 Players</h2>
+
+      <!-- O‘yinchilar ro‘yxati -->
+      <div class="leaderboard-list"></div>
+    </aside>
+  </body>
+</html>
