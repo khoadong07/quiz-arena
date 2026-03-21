@@ -1,27 +1,66 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import { Users, Play, Trophy, Clock, CheckCircle2, Check, X } from 'lucide-react';
+import { Users, Play, Trophy, Clock, CheckCircle2, Check, X, LogOut, TrendingUp } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { socket } from '../socket';
 import bg from '../assets/1.jpg';
 
-import theme1 from "../audio/theme/Calvin Harris - Outside (Lyrics) ft. Ellie Goulding.mp3";
+// Helper component for counting points
+function ScoreCounter({ target, lastEarned }) {
+  const [current, setCurrent] = useState(target - lastEarned);
+  const [showDelta, setShowDelta] = useState(false);
+
+  useEffect(() => {
+    if (lastEarned > 0) {
+      setTimeout(() => setShowDelta(true), 500);
+      const start = target - lastEarned;
+      const duration = 1500;
+      const startTime = performance.now();
+
+      const animate = (time) => {
+        const elapsed = time - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeOutQuad = (t) => t * (2 - t);
+        const nextVal = Math.floor(start + (target - start) * easeOutQuad(progress));
+        setCurrent(nextVal);
+        if (progress < 1) requestAnimationFrame(animate);
+      };
+      requestAnimationFrame(animate);
+    } else {
+      setCurrent(target);
+    }
+  }, [target, lastEarned]);
+
+  return (
+    <div className="points-info-v2">
+      <span className="current-points-v2">{current} <small>đ</small></span>
+      {showDelta && lastEarned > 0 && <div className="super-delta-badge">+{lastEarned}</div>}
+    </div>
+  );
+}
+
+import theme1 from "../audio/theme/Late Night Talk Show Music _ For content creator.mp3";
 import theme2 from "../audio/theme/Cinematic Rock Racing by Infraction [No Copyright Music] _ Riders.mp3";
 import lobbyMusicFile from "../audio/online/Cinematic Rock Racing by Infraction [No Copyright Music] _ Riders.mp3";
 import cheerMusicFile from "../audio/cheer/CROWD CHEER SOUND EFFECT.mp3";
+import countdownMusicFile from "../audio/theme/countdown.mp3";
 
 export default function AdminDashboard() {
   const { otp } = useParams();
+  const navigate = useNavigate();
   const bgMusicRef = useRef(null);
   const winMusicRef = useRef(null);
   const lobbyMusicRef = useRef(null);
+  const countdownMusicRef = useRef(null);
   const [players, setPlayers] = useState([]);
   const [status, setStatus] = useState('waiting');
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(5);
   const [leaderboard, setLeaderboard] = useState([]);
   const [questionData, setQuestionData] = useState(null);
   const [timeLeft, setTimeLeft] = useState(60);
+  const [leaderboardData, setLeaderboardData] = useState(null);
+  const [prevRanks, setPrevRanks] = useState({});
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
 
   useEffect(() => {
@@ -47,13 +86,14 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (bgMusicRef.current) {
-      if (['starting', 'playing', 'time-up'].includes(status)) bgMusicRef.current.play().catch(() => { });
+      if (['reading', 'playing', 'time-up'].includes(status)) bgMusicRef.current.play().catch(() => { });
       else { bgMusicRef.current.pause(); bgMusicRef.current.currentTime = 0; }
     }
     if (winMusicRef.current) {
       if (status === 'leaderboard') winMusicRef.current.play().catch(() => { });
       else { winMusicRef.current.pause(); winMusicRef.current.currentTime = 0; }
     }
+    // Countdown music removed as requested
   }, [status]);
 
   // Lock back nav
@@ -85,7 +125,40 @@ export default function AdminDashboard() {
 
     socket.on('player-joined', p => setPlayers(p));
     socket.on('game-starting', count => { setStatus('starting'); setCountdown(count); });
-    socket.on('new-question', qData => { setStatus('playing'); setQuestionData(qData); setTimeLeft(qData.time || 60); });
+    socket.on('question-reading', qData => {
+      setStatus('reading');
+      setQuestionData(qData);
+      setCountdown(3);
+    });
+    socket.on('question-playing', qData => {
+      setStatus('playing');
+      setQuestionData(prev => ({ ...prev, choices: qData.choices }));
+      setTimeLeft(qData.time || 60);
+    });
+    socket.on('question-result', data => {
+      setStatus('result');
+      setLeaderboardData(data);
+    });
+    socket.on('intermediate-leaderboard', lb => {
+      setPrevRanks(prev => {
+        const newPrev = {};
+        lb.forEach((p, i) => {
+          // We want to store the rank of each nickname from the *current* state 
+          // before it gets updated by the *new* state.
+          // But lb IS the new state. 
+          // Wait, I should store the ranks of the *existing* leaderboard state.
+        });
+        return prev;
+      });
+
+      setLeaderboard(currentLb => {
+        const ranks = {};
+        currentLb.forEach((p, i) => { ranks[p.nickname] = i; });
+        setPrevRanks(ranks);
+        return lb;
+      });
+      setStatus('leaderboard-inter');
+    });
     socket.on('player-answered', p => setPlayers([...p]));
     socket.on('update-scores', p => setPlayers([...p]));
     socket.on('game-ended', () => setStatus('ended'));
@@ -95,7 +168,8 @@ export default function AdminDashboard() {
     });
 
     return () => {
-      socket.off('player-joined'); socket.off('game-starting'); socket.off('new-question');
+      socket.off('player-joined'); socket.off('game-starting'); socket.off('question-reading');
+      socket.off('question-playing'); socket.off('question-result'); socket.off('intermediate-leaderboard');
       socket.off('player-answered'); socket.off('update-scores'); socket.off('game-ended'); socket.off('show-leaderboard');
     };
   }, []);
@@ -117,7 +191,7 @@ export default function AdminDashboard() {
   const joinUrl = `${window.location.protocol}//${window.location.host}/join?otp=${otp}`;
   const maxPlayers = 50;
   const timerColor = timeLeft > 10 ? 'var(--success)' : timeLeft > 5 ? 'var(--warning)' : 'var(--danger)';
-  const timerPct = Math.round((timeLeft / 20) * 100);
+  const timerPct = Math.round((timeLeft / 15) * 100);
   const medals = ['🥇', '🥈', '🥉'];
   const choiceColors = ['var(--choice-a)', 'var(--choice-b)', 'var(--choice-c)', 'var(--choice-d)'];
   const choiceLabels = ['A', 'B', 'C', 'D'];
@@ -132,6 +206,7 @@ export default function AdminDashboard() {
         <audio ref={lobbyMusicRef} src={lobbyMusicFile} preload="auto" />
         <audio ref={bgMusicRef} src={currentTheme} loop preload="auto" />
         <audio ref={winMusicRef} src={cheerMusicFile} preload="auto" />
+        <audio ref={countdownMusicRef} src={countdownMusicFile} preload="auto" />
       </div>
       {status === 'leaderboard' && <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={800} gravity={0.15} style={{ position: 'fixed', top: 0, left: 0, pointerEvents: 'none', zIndex: 9999 }} />}
     </>
@@ -141,7 +216,7 @@ export default function AdminDashboard() {
   if (status === 'waiting') return (
     <>
       {audioNodes}
-      <div className="admin-screen" style={{backgroundImage: `linear-gradient(rgba(10,14,30,0.72), rgba(10,14,30,0.82)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat'}}>
+      <div className="admin-screen" style={{ backgroundImage: `linear-gradient(rgba(10,14,30,0.72), rgba(10,14,30,0.82)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
         <div className="admin-hero" style={{ alignItems: 'center', textAlign: 'center', padding: '2rem 1.25rem' }}>
           <div className="qr-box" style={{ marginBottom: '1.5rem', padding: '1.5rem', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
             <QRCodeSVG value={joinUrl} size={220} />
@@ -210,10 +285,37 @@ export default function AdminDashboard() {
   if (status === 'starting') return (
     <>
       {audioNodes}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Bắt đầu sau</p>
-        <div className="countdown-big">{countdown}</div>
+      <div className="admin-screen" style={{ backgroundImage: `linear-gradient(rgba(10,14,30,0.8), rgba(10,14,30,0.9)), url(${bg})`, backgroundSize: 'cover' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Bắt đầu sau</p>
+          <div className="countdown-big">{countdown}</div>
+        </div>
       </div>
+    </>
+  );
+
+  // ── READING ──
+  if (status === 'reading') return (
+    <>
+      {audioNodes}
+      <div className="admin-screen reading-stage" style={{ backgroundImage: `linear-gradient(rgba(10,14,30,0.4), rgba(10,14,30,0.6)), url(${bg})`, backgroundSize: 'cover' }}>
+        <div style={{ textAlign: 'center', maxWidth: '800px', width: '100%' }}>
+          <p className="question-index-badge">Câu {(questionData?.index ?? 0) + 1}</p>
+          <h1 className="reading-title">{questionData?.question}</h1>
+          {questionData?.image && (
+            <img src={questionData.image} alt="" className="reading-image" />
+          )}
+          <div className="reading-preparation">Chuẩn bị sẵn sàng...</div>
+        </div>
+      </div>
+      <style>{`
+        .reading-stage { display: flex; align-items: center; justify-content: center; height: 100vh; animation: fadeIn 0.5s ease; }
+        .question-index-badge { display: inline-block; padding: 0.5rem 2rem; background: var(--primary); color: white; border-radius: 99px; font-weight: 800; font-size: 1.2rem; margin-bottom: 2rem; }
+        .reading-title { font-size: 3.5rem; fontWeight: 900; line-height: 1.2; text-shadow: 0 4px 20px rgba(0,0,0,0.4); margin-bottom: 3rem; }
+        .reading-image { max-height: 40vh; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); object-fit: contain; margin-bottom: 2rem; }
+        .reading-preparation { font-size: 1.5rem; font-weight: 700; opacity: 0.8; letter-spacing: 0.2rem; text-transform: uppercase; animation: pulse 1s infinite alternate; }
+        @keyframes pulse { from { opacity: 0.4; } to { opacity: 0.9; } }
+      `}</style>
     </>
   );
 
@@ -289,46 +391,327 @@ export default function AdminDashboard() {
     </>
   );
 
+  // ── RESULT ──
+  if (status === 'result') return (
+    <>
+      {audioNodes}
+      <div className="admin-screen">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <div>
+            <p className="question-number" style={{ marginBottom: '0.25rem' }}>Kết Quả Câu {(questionData?.index ?? 0) + 1}</p>
+            <p style={{ fontWeight: 800, fontSize: '1.8rem', lineHeight: 1.2 }}>{questionData?.question}</p>
+          </div>
+          <div className="badge badge-success" style={{ fontSize: '1rem', padding: '0.75rem 1.5rem' }}>Đã hoàn thành</div>
+        </div>
+
+        <div className="choices-display" style={{ marginBottom: '2rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          {questionData?.choices?.map((ch, i) => {
+            const isCorrect = i === leaderboardData?.correctAnswer;
+            return (
+              <div
+                key={i}
+                className={`choice-display-card result-choice ${isCorrect ? 'correct-highlight' : 'wrong-fade'}`}
+                style={{ height: 'auto', padding: '1.5rem' }}
+              >
+                <div className="choice-label" style={{ background: isCorrect ? 'var(--success)' : choiceColors[i] }}>
+                  {isCorrect ? <Check size={24} strokeWidth={4} /> : choiceLabels[i]}
+                </div>
+                <span style={{ fontSize: '1.2rem', fontWeight: 700 }}>{ch}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 24, padding: '1.5rem' }}>
+          <p style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '1rem' }}>Kết Quả Người Chơi</p>
+          <div className="player-grid">
+            {leaderboardData?.players?.map((p, i) => (
+              <div key={i} className={`player-chip ${p.isCorrect ? 'correct' : 'incorrect'}`} style={{ padding: '0.5rem 1rem' }}>
+                <img src={p.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.nickname}`} alt="" />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontWeight: 700 }}>{p.nickname}</span>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>{p.isCorrect ? `+${p.lastEarned}` : '+0'}</span>
+                </div>
+                <div className="status-dot">
+                  {p.isCorrect ? <Check size={12} strokeWidth={4} /> : <X size={12} strokeWidth={4} />}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <style>{`
+         .correct-highlight { border: 4px solid var(--success) !important; background: rgba(16,185,129,0.1) !important; transform: scale(1.02); z-index: 10; boxShadow: 0 0 30px rgba(16,185,129,0.3); }
+         .wrong-fade { opacity: 0.4; }
+         .player-chip.correct { border: 2px solid var(--success-light); background: rgba(16,185,129,0.1); }
+         .player-chip.incorrect { border: 2px solid var(--danger); background: rgba(239,68,68,0.1); }
+         .status-dot { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-left: 0.5rem; }
+         .correct .status-dot { background: var(--success); color: white; }
+         .incorrect .status-dot { background: var(--danger); color: white; }
+      `}</style>
+    </>
+  );
+
+  // ── INTERMEDIATE LEADERBOARD ──
+  if (status === 'leaderboard-inter') return (
+    <>
+      {audioNodes}
+      <div className="admin-screen fullscreen-leaderboard" style={{ backgroundImage: `linear-gradient(rgba(10,14,30,0.85), rgba(10,14,30,0.95)), url(${bg})`, backgroundSize: 'cover' }}>
+        <div className="leaderboard-container">
+          <div className="leaderboard-header">
+            <Trophy size={48} className="trophy-icon" />
+            <h1 className="leaderboard-title">BẢNG XẾP HẠNG TẠM THỜI</h1>
+          </div>
+
+          <div className="leaderboard-table-wrapper" style={{ height: `${Math.min(leaderboard.length * 80, 600)}px` }}>
+            <div className="leaderboard-table">
+              {leaderboard.slice(0, 10).map((p, i) => {
+                const prevRank = prevRanks[p.nickname];
+                const rankChanged = prevRank !== undefined && prevRank !== i;
+                const movedUp = prevRank !== undefined && i < prevRank;
+                const movedDown = prevRank !== undefined && i > prevRank;
+
+                return (
+                  <div
+                    key={p.nickname}
+                    className={`leaderboard-row-new ${movedUp ? 'glow-up' : ''}`}
+                    style={{
+                      transform: `translateY(${i * 80}px)`,
+                      zIndex: 10 - i,
+                      transition: 'transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s, box-shadow 0.3s'
+                    }}
+                  >
+                    <div className="rank-col" style={{ position: 'relative' }}>
+                      <span className={`rank-circle rank-${i + 1}`}>{i + 1}</span>
+                      {movedUp && <div className="rank-indicator up">▲</div>}
+                      {movedDown && <div className="rank-indicator down">▼</div>}
+                    </div>
+                    <div className="avatar-col">
+                      <img src={p.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.nickname}`} alt="" className="player-avatar-lg" />
+                    </div>
+                    <div className="name-col">
+                      <span className="player-nickname">{p.nickname}</span>
+                      {p.streak >= 2 && <span className="admin-streak-badge">🔥 x{p.streak}</span>}
+                    </div>
+                    <div className="score-col">
+                      <div className="score-details-row">
+                        <div className="points-container">
+                          <ScoreCounter target={p.score} lastEarned={p.lastEarned} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="admin-footer-controls">
+            <button className="btn btn-primary next-btn-large" onClick={() => socket.emit('next-question', otp)}>
+              TIẾP TỤC <Play size={24} fill="currentColor" />
+            </button>
+          </div>
+        </div>
+      </div>
+      <style>{`
+        .fullscreen-leaderboard { height: 100vh; width: 100vw; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+        .leaderboard-container { width: 100%; max-width: 1000px; animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
+        .leaderboard-header { text-align: center; margin-bottom: 3rem; }
+        .trophy-icon { color: #fbbf24; filter: drop-shadow(0 0 20px rgba(251,191,36,0.5)); margin-bottom: 1rem; }
+        .leaderboard-title { font-size: 3rem; font-weight: 900; color: white; letter-spacing: 0.1rem; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        
+        .leaderboard-table-wrapper { position: relative; width: 100%; }
+        .leaderboard-table { width: 100%; height: 100%; }
+        
+        .leaderboard-row-new { 
+          position: absolute; top: 0; left: 0; right: 0; height: 70px;
+          display: flex; align-items: center; 
+          background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); 
+          padding: 0 2rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);
+          transition: transform 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        .rank-col { width: 60px; }
+        .rank-circle { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 900; font-size: 1.2rem; background: rgba(255,255,255,0.1); }
+        .rank-1 { background: #fbbf24; color: #000; box-shadow: 0 0 20px rgba(251,191,36,0.4); }
+        .rank-2 { background: #cbd5e1; color: #000; }
+        .rank-3 { background: #b45309; color: #fff; }
+        
+        .avatar-col { margin: 0 1.5rem; }
+        .player-avatar-lg { width: 50px; height: 50px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); }
+        
+        .name-col { flex: 1; }
+        .player-nickname { font-size: 1.6rem; font-weight: 700; color: white; }
+        .admin-streak-badge { background: #fbbf24; color: #000; font-size: 0.8rem; font-weight: 900; padding: 0.1rem 0.5rem; border-radius: 4px; margin-left: 0.75rem; vertical-align: middle; }
+        
+        .score-col { text-align: right; min-width: 140px; }
+        .points-info-v2 { position: relative; display: flex; flex-direction: column; align-items: flex-end; }
+        .current-points-v2 { font-size: 2.5rem; font-weight: 950; color: #818cf8; font-variant-numeric: tabular-nums; line-height: 1; text-shadow: 0 0 20px rgba(129,140,248,0.3); }
+        .current-points-v2 small { font-size: 1.2rem; opacity: 0.7; }
+        
+        .super-delta-badge { 
+          position: absolute; right: 0; bottom: 40px;
+          background: #10b981; color: white;
+          padding: 0.5rem 1.2rem; border-radius: 14px;
+          font-size: 1.5rem; font-weight: 900;
+          box-shadow: 0 10px 25px rgba(16,185,129,0.5);
+          animation: flyUpAndFade 2.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          z-index: 100;
+        }
+        
+        @keyframes flyUpAndFade { 
+          0% { transform: translateY(20px) scale(0.5); opacity: 0; }
+          10% { transform: translateY(0) scale(1.2); opacity: 1; }
+          20% { transform: translateY(0) scale(1); opacity: 1; }
+          80% { transform: translateY(-20px) scale(1); opacity: 1; }
+          100% { transform: translateY(-50px) scale(0.8); opacity: 0; }
+        }
+        
+        .admin-footer-controls { margin-top: 4rem; display: flex; justify-content: center; }
+        .next-btn-large { padding: 1.2rem 4rem; font-size: 1.4rem; font-weight: 800; border-radius: 60px; box-shadow: 0 15px 35px rgba(99,102,241,0.4); }
+        
+        @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes bounceIn { 0% { opacity: 0; transform: scale(.3); } 50% { opacity: 1; transform: scale(1.05); } 100% { transform: scale(1); } }
+      `}</style>
+    </>
+  );
+
   // ── ENDED ──
   if (status === 'ended') return (
     <>
       {audioNodes}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-        <div style={{ textAlign: 'center', maxWidth: 360 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <div style={{ textAlign: 'center', maxWidth: 400 }}>
           <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏁</div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 900, marginBottom: '0.75rem' }}>Hoàn tất!</h2>
-          <p className="text-muted" style={{ marginBottom: '2rem', fontSize: '1rem' }}>Tất cả câu hỏi đã kết thúc. Sẵn sàng hiển thị bảng xếp hạng?</p>
-          <button className="btn btn-secondary" onClick={() => { socket.emit('show-results', otp); }} style={{ maxWidth: 300, margin: '0 auto' }}>
-            <Trophy size={22} /> Xem Kết Quả
+          <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '0.75rem' }}>Hoàn tất!</h2>
+          <p className="text-muted" style={{ marginBottom: '2rem', fontSize: '1.1rem' }}>Tất cả câu hỏi đã kết thúc. Sẵn sàng xem vinh danh?</p>
+          <button className="btn btn-primary" onClick={() => { socket.emit('show-results', otp); }} style={{ padding: '1rem 3rem' }}>
+            <Trophy size={22} style={{ marginRight: '0.5rem' }} /> XEM KẾT QUẢ CUỐI CÙNG
           </button>
         </div>
       </div>
     </>
   );
 
-  // ── LEADERBOARD ──
+  // ── FINAL LEADERBOARD ──
   if (status === 'leaderboard') return (
     <>
       {audioNodes}
-      <div className="admin-screen">
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <Trophy size={40} style={{ color: '#fbbf24', marginBottom: '0.5rem' }} />
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 900 }}>Bảng Xếp Hạng</h2>
-        </div>
-        <div className="leaderboard">
-          {leaderboard.map((p, i) => (
-            <div key={i} className="leaderboard-row">
-              <span className="leaderboard-rank">{medals[i] || `${i + 1}`}</span>
-              <img src={p.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.nickname}`} alt="" className="leaderboard-avatar" />
-              <span className="leaderboard-name">{p.nickname}</span>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginLeft: 'auto' }}>
-                <span className="leaderboard-score" style={{ marginLeft: 0 }}>{p.score} đ</span>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{p.totalTime || 0}s</span>
+      {windowSize.width > 0 && <Confetti width={windowSize.width} height={windowSize.height} recycle={true} numberOfPieces={200} />}
+      <div className="admin-screen fullscreen-leaderboard final-stage" style={{ backgroundImage: `linear-gradient(rgba(10,14,30,0.8), rgba(10,14,30,0.9)), url(${bg})`, backgroundSize: 'cover' }}>
+        <div className="final-layout">
+          {/* Left Column: Podium */}
+          <div className="final-podium-side">
+            <div className="leaderboard-header-final">
+              <div className="congrats-text">CHÚC MỪNG CHIẾN THẮNG!</div>
+              <h1 className="leaderboard-title-final">VINH DANH QUÁN QUÂN</h1>
+            </div>
+
+            <div className="podium-section">
+              {leaderboard.length >= 2 && (
+                <div className="podium-spot rank-2-spot">
+                  <img src={leaderboard[1].avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${leaderboard[1].nickname}`} alt="" className="podium-avatar" />
+                  <div className="podium-name">{leaderboard[1].nickname}</div>
+                  <div className="podium-base rank-2-base">
+                    <span className="base-rank">2</span>
+                    <div className="base-score">{leaderboard[1].score} đ</div>
+                  </div>
+                </div>
+              )}
+              {leaderboard.length >= 1 && (
+                <div className="podium-spot rank-1-spot">
+                  <Trophy className="winner-crown" size={48} />
+                  <img src={leaderboard[0].avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${leaderboard[0].nickname}`} alt="" className="podium-avatar winner-avatar" />
+                  <div className="podium-name winner-name">{leaderboard[0].nickname}</div>
+                  <div className="podium-base rank-1-base">
+                    <span className="base-rank">1</span>
+                    <div className="base-score">{leaderboard[0].score} đ</div>
+                  </div>
+                </div>
+              )}
+              {leaderboard.length >= 3 && (
+                <div className="podium-spot rank-3-spot">
+                  <img src={leaderboard[2].avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${leaderboard[2].nickname}`} alt="" className="podium-avatar" />
+                  <div className="podium-name">{leaderboard[2].nickname}</div>
+                  <div className="podium-base rank-3-base">
+                    <span className="base-rank">3</span>
+                    <div className="base-score">{leaderboard[2].score} đ</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column: Full List */}
+          <div className="final-list-side">
+            <div className="full-list-card">
+              <div className="full-list-header">
+                <TrendingUp size={24} style={{ marginRight: '0.75rem', color: '#fbbf24' }} /> BẢNG THỨ HẠNG TỔNG
+              </div>
+              <div className="full-list-scrollable">
+                {leaderboard.map((p, i) => (
+                  <div key={p.nickname} className={`full-rank-row ${i < 3 ? 'best-rank' : ''}`}>
+                    <span className="full-rank-num">{i + 1}</span>
+                    <img src={p.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.nickname}`} alt="" className="full-rank-avatar" />
+                    <span className="full-rank-name">{p.nickname}</span>
+                    <span className="full-rank-score">{p.score} <small>đ</small></span>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
+          </div>
+
+          <button onClick={() => navigate('/')} className="top-right-exit" title="Thoát">
+            <X size={32} />
+          </button>
         </div>
       </div>
+      <style>{`
+        .final-stage { animation: fadeIn 1.2s ease; width: 100vw; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .final-layout { width: 95%; max-width: 1400px; display: grid; grid-template-columns: 1fr 450px; gap: 4rem; height: 85vh; align-items: center; position: relative; }
+        
+        .leaderboard-header-final { text-align: center; margin-bottom: 3rem; }
+        .congrats-text { font-size: 1.2rem; font-weight: 800; color: #fbbf24; letter-spacing: 0.4rem; margin-bottom: 0.5rem; }
+        .leaderboard-title-final { font-size: 3rem; font-weight: 950; color: white; text-shadow: 0 0 30px rgba(129,140,248,0.3); }
+
+        .final-podium-side { display: flex; flex-direction: column; align-items: center; }
+        
+        .final-list-side { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+        .full-list-card { background: rgba(255,255,255,0.06); backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.1); border-radius: 32px; display: flex; flex-direction: column; height: 100%; box-shadow: 0 25px 60px rgba(0,0,0,0.4); }
+        .full-list-header { padding: 2rem; font-weight: 900; font-size: 1.3rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; color: white; letter-spacing: 0.1rem; }
+        .full-list-scrollable { flex: 1; overflow-y: auto; padding: 1.5rem; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent; }
+        
+        .full-rank-row { display: flex; align-items: center; padding: 1rem 1.25rem; border-radius: 16px; margin-bottom: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid transparent; transition: 0.2s; }
+        .full-rank-row.best-rank { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.15); }
+        .full-rank-num { width: 40px; font-weight: 900; color: rgba(255,255,255,0.3); font-size: 1.2rem; }
+        .best-rank .full-rank-num { color: #fbbf24; }
+        .full-rank-avatar { width: 36px; height: 36px; border-radius: 10px; margin: 0 1.25rem; border: 1px solid rgba(255,255,255,0.1); }
+        .full-rank-name { flex: 1; font-weight: 700; font-size: 1.1rem; color: white; }
+        .full-rank-score { font-weight: 900; font-size: 1.2rem; color: #818cf8; }
+        
+        .top-right-exit { position: fixed; top: 2rem; right: 2rem; background: rgba(0,0,0,0.2); border: none; color: white; cursor: pointer; padding: 0.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.3s, transform 0.2s; z-index: 1000; }
+        .top-right-exit:hover { background: rgba(239, 68, 68, 0.4); transform: scale(1.1); }
+
+        .podium-section { display: flex; align-items: flex-end; justify-content: center; gap: 1.5rem; margin-top: 1rem; }
+        .podium-spot { display: flex; flex-direction: column; align-items: center; width: 180px; transition: all 0.5s ease; animation: slideUpPodium 1s cubic-bezier(0.23, 1, 0.32, 1) both; }
+        .podium-avatar { width: 85px; height: 85px; border-radius: 50%; border: 4px solid rgba(255,255,255,0.1); margin-bottom: 1.25rem; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        .podium-name { font-size: 1.2rem; font-weight: 800; color: white; margin-bottom: 0.75rem; text-align: center; }
+        
+        .podium-base { width: 100%; border-radius: 20px 20px 8px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 15px 35px rgba(0,0,0,0.3); }
+        .rank-2-base { height: 130px; background: linear-gradient(135deg, #cbd5e1, #64748b); animation-delay: 0.2s; }
+        .rank-1-base { height: 200px; background: linear-gradient(135deg, #fbbf24, #d97706); animation-delay: 0.5s; }
+        .rank-3-base { height: 90px; background: linear-gradient(135deg, #b45309, #78350f); animation-delay: 0.8s; }
+        
+        .rank-1-spot { transform: scale(1.2); z-index: 10; margin-bottom: 30px; }
+        .winner-crown { color: #fbbf24; filter: drop-shadow(0 0 15px rgba(251,191,36,0.6)); margin-bottom: -15px; z-index: 11; }
+        .winner-avatar { border-color: #fbbf24; box-shadow: 0 0 40px rgba(251,191,36,0.3); width: 100px; height: 100px; }
+        
+        .base-rank { font-size: 3.5rem; font-weight: 950; color: rgba(255,255,255,0.3); line-height: 1; }
+        .base-score { font-size: 1.1rem; font-weight: 900; color: white; background: rgba(0,0,0,0.3); padding: 0.3rem 1.1rem; border-radius: 99px; margin-top: 0.5rem; }
+
+        @keyframes slideUpPodium { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      `}</style>
     </>
   );
 

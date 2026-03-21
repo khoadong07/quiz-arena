@@ -1,13 +1,48 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, CheckCircle, Clock, Loader2 } from 'lucide-react';
+import { LogOut, CheckCircle, Clock, Loader2, X } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { socket } from '../socket';
 import bg from '../assets/19.jpg';
 
-import theme1 from "../audio/theme/Calvin Harris - Outside (Lyrics) ft. Ellie Goulding.mp3";
-import theme2 from "../audio/theme/Cinematic Rock Racing by Infraction [No Copyright Music] _ Riders.mp3";
+// Helper component for counting points
+function ScoreCounter({ target, lastEarned }) {
+  const [current, setCurrent] = useState(target - lastEarned);
+  const [showDelta, setShowDelta] = useState(false);
+  
+  useEffect(() => {
+    if (lastEarned > 0) {
+      setTimeout(() => setShowDelta(true), 300);
+      const start = target - lastEarned;
+      const duration = 1200; 
+      const startTime = performance.now();
+      
+      const animate = (time) => {
+        const elapsed = time - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeOutQuad = (t) => t * (2 - t);
+        const nextVal = Math.floor(start + (target - start) * easeOutQuad(progress));
+        setCurrent(nextVal);
+        if (progress < 1) requestAnimationFrame(animate);
+      };
+      requestAnimationFrame(animate);
+    } else {
+      setCurrent(target);
+    }
+  }, [target, lastEarned]);
+
+  return (
+    <div className="player-score-container">
+      <div className="player-total-score">{current} <small>đ</small></div>
+      {showDelta && lastEarned > 0 && <div className="player-delta-badge">+{lastEarned}</div>}
+    </div>
+  );
+}
+
+import theme1 from "../audio/theme/Late Night Talk Show Music _ For content creator.mp3";
+import theme2 from "../audio/theme/Late Night Talk Show Music _ For content creator.mp3";
 import cheerMusicFile from "../audio/cheer/CROWD CHEER SOUND EFFECT.mp3";
+import countdownMusicFile from "../audio/theme/countdown.mp3";
 
 export default function PlayerGame() {
   const { state } = useLocation();
@@ -15,16 +50,20 @@ export default function PlayerGame() {
 
   const [sessionData, setSessionData] = useState(state);
   const [status, setStatus] = useState('waiting');
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(5);
   const [questionData, setQuestionData] = useState(null);
   const [timeLeft, setTimeLeft] = useState(60);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [resultData, setResultData] = useState(null);
+  const [myResult, setMyResult] = useState(null);
+  const [myScore, setMyScore] = useState(0);
 
   const bgMusicRef = useRef(null);
   const winMusicRef = useRef(null);
+  const countdownMusicRef = useRef(null);
 
   useEffect(() => {
     const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
@@ -34,13 +73,14 @@ export default function PlayerGame() {
 
   useEffect(() => {
     if (bgMusicRef.current) {
-      if (['starting', 'playing', 'time-up'].includes(status)) bgMusicRef.current.play().catch(() => { });
+      if (['reading', 'playing', 'time-up'].includes(status)) bgMusicRef.current.play().catch(() => { });
       else { bgMusicRef.current.pause(); bgMusicRef.current.currentTime = 0; }
     }
     if (winMusicRef.current) {
       if (status === 'leaderboard') winMusicRef.current.play().catch(() => { });
       else { winMusicRef.current.pause(); winMusicRef.current.currentTime = 0; }
     }
+    // Countdown music removed as requested
   }, [status]);
 
   // Lock back navigation
@@ -79,15 +119,46 @@ export default function PlayerGame() {
     const timerInterval = setInterval(() => setTimeLeft(p => p > 0 ? p - 1 : 0), 1000);
 
     socket.on('game-starting', count => { setStatus('starting'); setCountdown(count); });
-    socket.on('new-question', qData => { setStatus('playing'); setQuestionData(qData); setTimeLeft(qData.time); setSelectedAnswer(null); });
-    socket.on('time-up', () => setStatus('time-up'));
+    socket.on('question-reading', qData => {
+      setStatus('reading');
+      setQuestionData(qData);
+      setCountdown(3);
+      setSelectedAnswer(null);
+      setResultData(null);
+    });
+    socket.on('question-playing', qData => {
+      setStatus('playing');
+      setQuestionData(prev => ({ ...prev, choices: qData.choices }));
+      setTimeLeft(qData.time);
+    });
+    socket.on('question-result', data => {
+      setStatus('result');
+      setResultData(data);
+      const me = data.players.find(p => p.nickname === currentSession.nickname);
+      if (me) {
+        setMyResult(me);
+        setMyScore(me.score);
+      }
+    });
+    socket.on('intermediate-leaderboard', lb => {
+      setStatus('leaderboard-inter');
+      setLeaderboard(lb);
+      const me = lb.find(p => p.nickname === currentSession.nickname);
+      if (me) setMyScore(me.score);
+    });
     socket.on('game-ended', () => setStatus('ended'));
-    socket.on('show-leaderboard', lb => { setStatus('leaderboard'); setLeaderboard(lb); });
+    socket.on('show-leaderboard', lb => {
+      setStatus('leaderboard');
+      setLeaderboard(lb);
+      const me = lb.find(p => p.nickname === currentSession.nickname);
+      if (me) setMyScore(me.score);
+    });
     socket.on('room-closed', () => { localStorage.removeItem('khoot_session'); navigate('/'); });
 
     return () => {
       clearInterval(timerInterval);
-      socket.off('game-starting'); socket.off('new-question'); socket.off('time-up');
+      socket.off('game-starting'); socket.off('question-reading'); socket.off('question-playing');
+      socket.off('question-result'); socket.off('intermediate-leaderboard');
       socket.off('game-ended'); socket.off('show-leaderboard'); socket.off('room-closed');
     };
   }, [navigate]);
@@ -99,8 +170,7 @@ export default function PlayerGame() {
   };
 
   const handleLeave = () => {
-    if (['playing', 'starting', 'waiting'].includes(status)) { setShowExitConfirm(true); }
-    else { confirmLeave(); }
+    setShowExitConfirm(true);
   };
 
   const confirmLeave = () => {
@@ -113,7 +183,7 @@ export default function PlayerGame() {
   const avatarToUse = sessionData?.avatar || defaultAvatar;
 
   const timerColor = timeLeft > 10 ? 'var(--success)' : timeLeft > 5 ? 'var(--warning)' : 'var(--danger)';
-  const timerPct = Math.round((timeLeft / 20) * 100);
+  const timerPct = Math.round((timeLeft / 15) * 100);
 
   const THEMES = [theme1, theme2];
   const seed = (sessionData?.otp || '').toString().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -124,6 +194,7 @@ export default function PlayerGame() {
       <div style={{ display: 'none' }}>
         <audio ref={bgMusicRef} src={currentTheme} loop preload="auto" />
         <audio ref={winMusicRef} src={cheerMusicFile} preload="auto" />
+        <audio ref={countdownMusicRef} src={countdownMusicFile} preload="auto" />
       </div>
       {status === 'leaderboard' && leaderboard.length > 0 && leaderboard[0].nickname === sessionData?.nickname && (
         <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={800} gravity={0.15} style={{ position: 'fixed', top: 0, left: 0, pointerEvents: 'none', zIndex: 9999 }} />
@@ -131,23 +202,29 @@ export default function PlayerGame() {
     </>
   );
 
-  // === ExitConfirm Modal (Bottom Sheet) ===
-  const exitModalNode = (
-    <div className="modal-overlay" onClick={() => setShowExitConfirm(false)}>
-      <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-        <div className="modal-handle" />
-        <LogOut size={36} style={{ color: 'var(--danger)', marginBottom: '0.75rem' }} />
-        <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '0.5rem' }}>Thoát khỏi game?</h3>
-        <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '1.75rem' }}>
-          Điểm số sẽ không được tính nếu bạn rời phòng.
-        </p>
-        <div className="form-stack">
-          <button className="btn btn-danger" onClick={confirmLeave}>Thoát</button>
-          <button className="btn btn-ghost" onClick={() => setShowExitConfirm(false)}>Ở lại</button>
+  const renderExitConfirm = () => {
+    if (!showExitConfirm) return null;
+    return (
+      <div className="modal-overlay" onClick={() => setShowExitConfirm(false)}>
+        <div className="modal-card" onClick={e => e.stopPropagation()}>
+          <CheckCircle size={48} style={{ color: 'var(--primary)', marginBottom: '1rem', display: 'none' }} />
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>Rời khỏi trò chơi?</h3>
+          <p className="text-muted" style={{ marginBottom: '2rem' }}>Nếu thoát lúc này, bạn sẽ mất hết điểm số và không thể quay lại vòng đấu này!</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <button className="btn btn-ghost" onClick={() => setShowExitConfirm(false)} style={{ border: '1px solid var(--border)' }}>Ở LẠI</button>
+            <button className="btn btn-danger" onClick={confirmLeave} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 700 }}>THOÁT</button>
+          </div>
         </div>
+        <style>{`
+          .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 99999; animation: fadeIn 0.3s; }
+          .modal-card { background: #1a1b26; width: 90%; max-width: 400px; padding: 2.5rem; border-radius: 24px; text-align: center; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 30px 60px rgba(0,0,0,0.5); animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+          @keyframes modalPop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+          @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        `}</style>
       </div>
-    </div>
-  );
+    );
+  };
 
   // === Persistent Header ===
   const headerNode = (
@@ -197,6 +274,22 @@ export default function PlayerGame() {
     </>
   );
 
+  // ── READING ──
+  if (status === 'reading') return (
+    <>
+      {audioNodes}
+      {showExitConfirm && exitModalNode}
+      {headerNode}
+      <div className="screen-center" style={{ flex: 1, backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover' }}>
+        <div style={{ textAlign: 'center' }}>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 700, opacity: 0.8, marginBottom: '0.5rem' }}>Câu {(questionData?.index ?? 0) + 1}</h2>
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '2rem' }}>{questionData?.question}</h1>
+          <p className="text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}>Chuẩn bị chọn...</p>
+        </div>
+      </div>
+    </>
+  );
+
   // ── PLAYING ──
   if (status === 'playing' || status === 'time-up') return (
     <>
@@ -204,13 +297,11 @@ export default function PlayerGame() {
       {showExitConfirm && exitModalNode}
       {headerNode}
       <div className="screen" style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-        {/* Timer + question number row */}
         <div className="game-header" style={{ marginTop: '0.5rem' }}>
           <span className="question-number">Câu {(questionData?.index ?? 0) + 1}</span>
           <span className="timer-display" style={{ color: timerColor }}>{timeLeft}s</span>
         </div>
 
-        {/* Timer bar */}
         <div className="timer-bar-wrapper">
           <div style={{
             height: '100%',
@@ -221,12 +312,11 @@ export default function PlayerGame() {
           }} />
         </div>
 
-        {/* Answered state */}
         {selectedAnswer !== null ? (
           <div className="answered-view" style={{ flex: 1 }}>
-            <CheckCircle size={72} style={{ color: 'var(--success)' }} />
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Đã chọn!</h3>
-            <p className="text-muted">Đang chờ câu tiếp theo...</p>
+            <Loader2 className="spin" size={64} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Đã ghi nhận!</h3>
+            <p className="text-muted">Chờ mọi người trả lời...</p>
           </div>
         ) : (
           <div className="choices-grid" style={{ marginTop: '1rem', flex: 1 }}>
@@ -237,13 +327,109 @@ export default function PlayerGame() {
           </div>
         )}
       </div>
+      <style>{`.spin { animation: spin 1.5s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
+
+  // ── RESULT ──
+  if (status === 'result') return (
+    <>
+      {audioNodes}
+      {showExitConfirm && exitModalNode}
+      {headerNode}
+      <div className={`screen-center result-screen ${myResult?.isCorrect ? 'correct' : 'incorrect'}`} style={{ flex: 1 }}>
+        <div className="result-card">
+          <div className="result-icon">
+            {myResult?.isCorrect ? <CheckCircle size={80} /> : <X size={80} />}
+          </div>
+          <h2 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '0.5rem' }}>
+            {myResult?.isCorrect ? 'ĐÚNG!' : 'SAI RỒI!'}
+          </h2>
+          <div className="player-result-points">
+             {myResult?.isCorrect ? (
+               <div className="points-added-big">+{myResult.lastEarned} <small>đ</small></div>
+             ) : (
+               <div className="points-added-big" style={{ opacity: 0.6 }}>0 <small>đ</small></div>
+             )}
+          </div>
+          {myResult?.streak >= 2 && (
+             <div className="streak-badge" style={{ marginTop: '1rem' }}>
+                🔥 Streak x{myResult.streak}
+             </div>
+          )}
+          <p style={{ opacity: 0.8, marginTop: '1rem' }}>Hãy chuẩn bị cho câu tiếp theo</p>
+        </div>
+      </div>
+      <style>{`
+        .result-screen { transition: background 0.5s ease; }
+        .result-screen.correct { background: var(--success); color: white; }
+        .result-screen.incorrect { background: var(--danger); color: white; }
+        .result-card { text-align: center; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        
+        .player-score-container { position: relative; margin-top: 1rem; }
+        .points-added-big { font-size: 4rem; font-weight: 950; margin-top: 1rem; animation: pointPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .points-added-big small { font-size: 1.5rem; opacity: 0.7; }
+        @keyframes pointPop { 0% { transform: scale(0.5) translateY(20px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+        
+        .player-total-score { font-size: 3rem; font-weight: 900; background: rgba(0,0,0,0.15); padding: 0.5rem 2rem; border-radius: 99px; display: inline-block; font-variant-numeric: tabular-nums; }
+        .player-total-score small { font-size: 1.2rem; opacity: 0.7; }
+        
+        .player-delta-badge { 
+          position: absolute; right: -20px; top: -30px;
+          background: #34d399; color: white;
+          padding: 0.4rem 1.2rem; border-radius: 12px;
+          font-size: 1.8rem; font-weight: 900;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+          animation: playerFlyUp 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        
+        @keyframes playerFlyUp { 
+          0% { transform: translateY(20px) scale(0.5); opacity: 0; }
+          15% { transform: translateY(0) scale(1.2); opacity: 1; }
+          100% { transform: translateY(-60px) scale(1); opacity: 0; }
+        }
+        .streak-badge { font-size: 1.2rem; font-weight: 900; background: #fbbf24; color: #000; padding: 0.4rem 1.2rem; border-radius: 99px; display: inline-block; animation: shake 0.5s ease infinite alternate; }
+        @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes shake { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+      `}</style>
+    </>
+  );
+
+  // ── INTERMEDIATE LEADERBOARD ──
+  if (status === 'leaderboard-inter') {
+    const myRankIndex = leaderboard.findIndex(p => p.nickname === sessionData?.nickname);
+    const myData = myRankIndex !== -1 ? leaderboard[myRankIndex] : null;
+    return (
+      <>
+        {audioNodes}
+        {renderExitConfirm()}
+        {headerNode}
+        <div className="screen-center" style={{ flex: 1, backgroundImage: `linear-gradient(rgba(10,14,30,0.8), rgba(10,14,30,0.95)), url(${bg})`, backgroundSize: 'cover' }}>
+          <div className="card" style={{ textAlign: 'center', width: '90%', maxWidth: '400px' }}>
+             <p className="text-muted" style={{ marginBottom: '1rem', fontWeight: 600 }}>TỔNG ĐIỂM HIỆN TẠI</p>
+             <h2 style={{ fontSize: '3.5rem', fontWeight: 900, color: 'var(--primary)', marginBottom: '0.5rem' }}>{myData?.score || 0}</h2>
+             {myData?.lastEarned > 0 && <div style={{ color: 'var(--success)', fontWeight: 800, fontSize: '1.2rem', marginBottom: '0.5rem' }}>+{myData.lastEarned} điểm</div>}
+             {myData?.streak >= 2 && (
+                <div style={{ background: '#fbbf24', color: '#000', fontWeight: 900, padding: '0.2rem 1rem', borderRadius: 99, display: 'inline-block', marginBottom: '1rem' }}>
+                   🔥 Streak x{myData.streak}
+                </div>
+             )}
+             <div className="rank-badge">Hạng {myRankIndex !== -1 ? myRankIndex + 1 : '—'}</div>
+             <p className="text-muted" style={{ marginTop: '2rem', fontSize: '0.9rem' }}>Chờ quản trò bắt đầu câu tiếp theo...</p>
+          </div>
+        </div>
+        <style>{`
+          .rank-badge { display: inline-block; padding: 0.5rem 1.5rem; background: var(--surface-light); border-radius: 99px; font-weight: 700; border: 1px solid var(--border); }
+        `}</style>
+      </>
+    );
+  }
 
   // ── ENDED ──
   if (status === 'ended') return (
     <>
       {audioNodes}
+      {showExitConfirm && exitModalNode}
       {headerNode}
       <div className="screen-center" style={{ flex: 1 }}>
         <div className="card" style={{ textAlign: 'center' }}>
@@ -264,6 +450,7 @@ export default function PlayerGame() {
     return (
       <>
         {audioNodes}
+        {renderExitConfirm()}
         {headerNode}
         <div className="screen" style={{ gap: '1.25rem' }}>
           {/* My result */}

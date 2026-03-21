@@ -43,6 +43,7 @@ const io = new Server(server, {
   // Socket.IO performance tuning
   pingInterval: 10000,
   pingTimeout: 5000,
+  maxHttpBufferSize: 1e7, // 10MB limit
   transports: ['websocket', 'polling'],
 });
 
@@ -102,7 +103,7 @@ io.on('connection', (socket) => {
         room: {
           status: room.status,
           players: room.players,
-          countdown: room.status === 'starting' ? 10 : null,
+          countdown: room.status === 'starting' ? 5 : null,
           timeLeft: room.timeLeft,
           questionData,
           leaderboard: room.status === 'leaderboard' ? [...room.players].sort((a,b) => {
@@ -166,7 +167,8 @@ io.on('connection', (socket) => {
       score: 0,
       answeredCurrent: false,
       currentAnswer: null,
-      connected: true
+      connected: true,
+      missedQuestionsCount: 0
     };
 
     room.players.push(newPlayer);
@@ -184,22 +186,6 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     if (!room) return;
 
-    // Check answers of the *previous* question and update scores
-    if (room.currentQuestionIndex >= 0 && room.currentQuestionIndex < room.questions.length) {
-      const q = room.questions[room.currentQuestionIndex];
-      room.players.forEach(p => {
-        if (p.currentAnswer === q.correct) {
-          p.score += 1;
-          p.totalTime = (p.totalTime || 0) + (p.answerTime || 0);
-        }
-        p.answeredCurrent = false;
-        p.currentAnswer = null;
-        p.answerTime = 0;
-      });
-      // Send updated leaderboard to admin (optional, Kahoot shows intermediate scores)
-      io.to(room.adminId).emit('update-scores', room.players);
-    }
-
     room.currentQuestionIndex++;
 
     if (room.currentQuestionIndex >= room.questions.length) {
@@ -208,37 +194,149 @@ io.on('connection', (socket) => {
       return;
     }
 
-    room.status = 'playing';
-    room.timeLeft = 20; // 20s per question
-    
+    // Step 1: Reading stage (3s)
+    room.status = 'reading';
     const currentQ = room.questions[room.currentQuestionIndex];
-    const questionDataForPlayer = {
+    const readingData = {
       index: room.currentQuestionIndex,
       question: currentQ.question,
       image: currentQ.image || null,
-      choices: currentQ.choices,
-      time: 20
+      totalQuestions: room.questions.length
     };
+    io.to(roomId).emit('question-reading', readingData);
 
-    io.to(roomId).emit('new-question', questionDataForPlayer);
+    setTimeout(() => {
+      if (!rooms[roomId] || rooms[roomId].status !== 'reading') return;
+      
+      // Step 2: Playing stage (15s)
+      room.status = 'playing';
+      room.timeLeft = 15;
+      io.to(roomId).emit('question-playing', { choices: currentQ.choices, time: 15 });
 
-    clearInterval(room.timerInterval);
-    room.timerInterval = setInterval(() => {
-      room.timeLeft--;
-      if (room.timeLeft <= 0) {
-        clearInterval(room.timerInterval);
-        io.to(roomId).emit('time-up');
-        // Briefly wait then next question
-        setTimeout(() => nextQuestion(roomId), 2000); 
-      }
-    }, 1000);
+      clearInterval(room.timerInterval);
+      room.timerInterval = setInterval(() => {
+        room.timeLeft--;
+        if (room.timeLeft <= 0) {
+          clearInterval(room.timerInterval);
+          showResult(roomId);
+        }
+      }, 1000);
+    }, 3000);
   };
+
+  const showResult = (roomId) => {
+    const room = rooms[roomId];
+    if (!room || room.status !== 'playing') return;
+
+    room.status = 'result';
+    const q = room.questions[room.currentQuestionIndex];
+    
+    // Auto-kick logic: Track missed questions for disconnected players
+    room.players.forEach(p => {
+      if (!p.answeredCurrent) {
+        if (!p.connected) {
+          p.missedQuestionsCount = (p.missedQuestionsCount || 0) + 1;
+        }
+      } else {
+        p.missedQuestionsCount = 0;
+      }
+    });
+
+    const initialCount = room.players.length;
+    room.players = room.players.filter(p => p.connected || p.missedQuestionsCount < 3);
+    
+    if (room.players.length < initialCount) {
+      console.log(`Auto-kicked some inactive players in room ${roomId}`);
+      io.to(room.adminId).emit('player-joined', room.players); // Refresh admin list
+    }
+    
+    // Update scores
+    room.players.forEach(p => {
+      p.isCorrect = (p.currentAnswer === q.correct);
+      if (p.isCorrect) {
+        p.streak = (p.streak || 0) + 1;
+        // Simple scoring: 100 base + speed bonus (timeLeft * 10)
+        let basePoints = 100 + (p.answerTimeLeft || 0) * 10;
+        
+        // Streak bonus
+        let bonusPct = 0;
+        if (p.streak === 2) bonusPct = 0.05;
+        else if (p.streak === 3) bonusPct = 0.10;
+        else if (p.streak >= 4) bonusPct = 0.15;
+        
+        const streakBonus = Math.round(basePoints * bonusPct);
+        const totalPoints = basePoints + streakBonus;
+        
+        p.lastEarned = totalPoints;
+        p.score += totalPoints;
+        p.totalTime = (p.totalTime || 0) + (20 - (p.answerTimeLeft || 0));
+      } else {
+        p.lastEarned = 0;
+        p.streak = 0;
+      }
+      // Reset for next
+      p.answeredCurrent = false;
+      p.currentAnswer = null;
+      p.answerTimeLeft = 0;
+    });
+
+    io.to(roomId).emit('question-result', {
+      correctAnswer: q.correct,
+      players: room.players
+    });
+
+    // Wait 4s then show either intermediate leaderboard or FINAL leaderboard
+    setTimeout(() => {
+      if (!rooms[roomId] || rooms[roomId].status !== 'result') return;
+      const isLastQuestion = room.currentQuestionIndex === (room.questions?.length - 1);
+      
+      if (isLastQuestion) {
+        showFinalLeaderboard(roomId);
+      } else {
+        showIntermediateLeaderboard(roomId);
+      }
+    }, 4000);
+  };
+
+  const showFinalLeaderboard = (roomId) => {
+    const room = rooms[roomId];
+    if (!room) return;
+    
+    room.status = 'leaderboard';
+    const sortedPlayers = [...room.players].sort((a,b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return (a.totalTime || 0) - (b.totalTime || 0);
+    });
+    
+    io.to(roomId).emit('game-ended');
+    io.to(roomId).emit('show-leaderboard', sortedPlayers);
+  };
+
+  const showIntermediateLeaderboard = (roomId) => {
+    const room = rooms[roomId];
+    if (!room) return;
+    
+    room.status = 'leaderboard-inter';
+    const sortedPlayers = [...room.players].sort((a,b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return (a.totalTime || 0) - (b.totalTime || 0);
+    });
+    
+    io.to(roomId).emit('intermediate-leaderboard', sortedPlayers);
+  };
+
+  socket.on('next-question', (otp) => {
+    const room = rooms[otp];
+    if (room && room.adminId === socket.id && room.status === 'leaderboard-inter') {
+      nextQuestion(otp);
+    }
+  });
 
   socket.on('start-game', (otp) => {
     const room = rooms[otp];
     if (room && room.adminId === socket.id) {
       room.status = 'starting';
-      let countdown = 10;
+      let countdown = 5;
       io.to(otp).emit('game-starting', countdown);
       
       const countInterval = setInterval(() => {
@@ -259,21 +357,14 @@ io.on('connection', (socket) => {
     if (player && !player.answeredCurrent) {
       player.answeredCurrent = true;
       player.currentAnswer = answerIndex;
-      player.answerTime = 20 - room.timeLeft; // Record time taken
+      player.answerTimeLeft = room.timeLeft; // Record time left for bonus
       // Tell admin someone answered
       io.to(room.adminId).emit('player-answered', room.players);
       
-      // If all answered, we could skip the remaining time, but requirement says:
-      // "Sau mỗi câu hỏi, khi hết 60 giây, câu hỏi tiếp theo tự động xuất hiện mà không cần chờ người chơi."
-      // So we just let the timer run, or maybe clear interval if everyone answered to speed up?
-      // Kahoot usually skips. Let's stick to simple timer unless all answered.
-      const allAnswered = room.players.every(p => p.answeredCurrent);
+      const allAnswered = room.players.filter(p => p.connected).every(p => p.answeredCurrent);
       if (allAnswered) {
         clearInterval(room.timerInterval);
-        room.timeLeft = 0;
-        io.to(otp).emit('time-up');
-        // Next immediately
-        setTimeout(() => nextQuestion(otp), 2000);
+        showResult(otp);
       }
     }
   });
@@ -307,6 +398,15 @@ io.on('connection', (socket) => {
         if (player) {
           player.connected = false;
           io.to(room.adminId).emit('player-joined', room.players);
+          
+          // If game is playing, check if this disconnection makes everyone answered
+          if (room.status === 'playing') {
+            const allAnswered = room.players.filter(p => p.connected).every(p => p.answeredCurrent);
+            if (allAnswered) {
+              clearInterval(room.timerInterval);
+              showResult(userInfo.otp);
+            }
+          }
         }
       }
       delete users[socket.id];
