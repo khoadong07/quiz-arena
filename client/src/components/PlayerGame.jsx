@@ -77,11 +77,12 @@ export default function PlayerGame() {
       else { bgMusicRef.current.pause(); bgMusicRef.current.currentTime = 0; }
     }
     if (winMusicRef.current) {
-      if (status === 'leaderboard') winMusicRef.current.play().catch(() => { });
+      const isWinner = leaderboard.length > 0 && leaderboard[0].nickname === sessionData?.nickname;
+      if (status === 'leaderboard' && isWinner) winMusicRef.current.play().catch(() => { });
       else { winMusicRef.current.pause(); winMusicRef.current.currentTime = 0; }
     }
     // Countdown music removed as requested
-  }, [status]);
+  }, [status, leaderboard, sessionData]);
 
   // Lock back navigation
   useEffect(() => {
@@ -183,7 +184,7 @@ export default function PlayerGame() {
   const avatarToUse = sessionData?.avatar || defaultAvatar;
 
   const timerColor = timeLeft > 10 ? 'var(--success)' : timeLeft > 5 ? 'var(--warning)' : 'var(--danger)';
-  const timerPct = Math.round((timeLeft / 15) * 100);
+  const timerPct = Math.round((timeLeft / 20) * 100);
 
   const THEMES = [theme1, theme2];
   const seed = (sessionData?.otp || '').toString().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);

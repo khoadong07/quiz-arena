@@ -208,10 +208,10 @@ io.on('connection', (socket) => {
     setTimeout(() => {
       if (!rooms[roomId] || rooms[roomId].status !== 'reading') return;
       
-      // Step 2: Playing stage (15s)
+      // Step 2: Playing stage (20s)
       room.status = 'playing';
-      room.timeLeft = 15;
-      io.to(roomId).emit('question-playing', { choices: currentQ.choices, time: 15 });
+      room.timeLeft = 20;
+      io.to(roomId).emit('question-playing', { choices: currentQ.choices, time: 20 });
 
       clearInterval(room.timerInterval);
       room.timerInterval = setInterval(() => {

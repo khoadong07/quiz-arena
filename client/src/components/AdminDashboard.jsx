@@ -191,7 +191,7 @@ export default function AdminDashboard() {
   const joinUrl = `${window.location.protocol}//${window.location.host}/join?otp=${otp}`;
   const maxPlayers = 50;
   const timerColor = timeLeft > 10 ? 'var(--success)' : timeLeft > 5 ? 'var(--warning)' : 'var(--danger)';
-  const timerPct = Math.round((timeLeft / 15) * 100);
+  const timerPct = Math.round((timeLeft / 20) * 100);
   const medals = ['🥇', '🥈', '🥉'];
   const choiceColors = ['var(--choice-a)', 'var(--choice-b)', 'var(--choice-c)', 'var(--choice-d)'];
   const choiceLabels = ['A', 'B', 'C', 'D'];
@@ -323,68 +323,57 @@ export default function AdminDashboard() {
   if (status === 'playing') return (
     <>
       {audioNodes}
-      <div className="admin-screen">
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <div>
-            <p className="question-number" style={{ marginBottom: '0.25rem' }}>Câu {(questionData?.index ?? 0) + 1}</p>
-            <p style={{ fontWeight: 700, fontSize: '1.15rem', lineHeight: 1.3 }}>{questionData?.question}</p>
+      <div className="admin-screen playing-stage" style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100vh', padding: '2rem 4rem', justifyContent: 'space-between' }}>
+        {/* Top Section: Question & Timer */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+          <div style={{ position: 'absolute', top: '2rem', left: '4rem' }}>
+             <p className="question-number" style={{ fontSize: '1.1rem', fontWeight: 800, background: 'rgba(255,255,255,0.1)', color: 'white', padding: '0.4rem 1.2rem', borderRadius: '99px' }}>Câu {(questionData?.index ?? 0) + 1}</p>
           </div>
-          <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '1rem' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 900, color: timerColor, lineHeight: 1 }}>{timeLeft}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>giây</div>
+          <div style={{ position: 'absolute', top: '2rem', right: '4rem', background: 'rgba(0,0,0,0.25)', padding: '1rem 1.5rem', borderRadius: '24px', border: '1px solid var(--border)', minWidth: '110px' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: timerColor, lineHeight: 1 }}>{timeLeft}</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>giây</div>
+          </div>
+          
+          <h1 style={{ fontWeight: 800, fontSize: '2.2rem', lineHeight: 1.2, color: 'white', maxWidth: '900px', marginTop: '3.5rem', marginBottom: '1.5rem', textShadow: '0 4px 15px rgba(0,0,0,0.4)' }}>
+            {questionData?.question}
+          </h1>
+
+          <div className="timer-bar-wrapper" style={{ height: '10px', width: '50%', maxWidth: '600px', background: 'rgba(255,255,255,0.05)', marginBottom: '1rem' }}>
+            <div style={{ height: '100%', width: `${timerPct}%`, background: timerColor, borderRadius: 99, transition: 'width 1s linear' }} />
           </div>
         </div>
 
-        {/* Timer bar */}
-        <div className="timer-bar-wrapper" style={{ marginBottom: '1rem' }}>
-          <div style={{ height: '100%', width: `${timerPct}%`, background: timerColor, borderRadius: 99, transition: 'width 1s linear' }} />
+        {/* Middle Section: Image */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '1.5rem 0' }}>
+          {questionData?.image ? (
+            <img src={questionData.image} alt="minh hoạ" style={{ maxHeight: '30vh', maxWidth: '85%', borderRadius: '24px', objectFit: 'contain', border: '4px solid rgba(255,255,255,0.08)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }} />
+          ) : (
+             <div style={{ height: '5vh' }}></div>
+          )}
         </div>
 
-        {/* Image */}
-        {questionData?.image && (
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-            <img src={questionData.image} alt="minh hoạ" style={{ maxHeight: '28vh', borderRadius: 16, objectFit: 'contain', border: '3px solid rgba(255,255,255,0.1)' }} />
-          </div>
-        )}
-
-        {/* Choices */}
-        <div className="choices-display" style={{ marginBottom: '1rem' }}>
+        {/* Bottom Section: Choices */}
+        <div className="choices-display" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%', maxWidth: '1200px', margin: '0 auto' }}>
           {questionData?.choices?.map((ch, i) => (
-            <div key={i} className="choice-display-card">
-              <div className="choice-label" style={{ background: choiceColors[i] }}>{choiceLabels[i]}</div>
-              <span>{ch}</span>
+            <div key={i} className="choice-display-card" style={{ padding: '1.25rem 1.5rem', fontSize: '1.4rem', borderRadius: '20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="choice-label" style={{ background: choiceColors[i], width: '46px', height: '46px', fontSize: '1.4rem', borderRadius: '12px', fontWeight: 900 }}>{choiceLabels[i]}</div>
+              <span style={{ fontWeight: 700, color: 'white', marginLeft: '0.25rem' }}>{ch}</span>
             </div>
           ))}
         </div>
 
-        {/* Player status */}
-        <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 16, padding: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>Người Chơi</p>
-            <span className="badge badge-success">
-              <CheckCircle2 size={13} />
-              {players.filter(p => p.answeredCurrent).length}/{players.length} đã trả lời
-            </span>
-          </div>
-          <div className="player-grid">
-            {players.map((p, i) => (
-              <div key={i} className={`player-chip ${p.answeredCurrent ? 'answered' : ''}`}>
-                <div style={{ position: 'relative', display: 'inline-block' }}>
-                  <img src={p.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.nickname}`} alt="" />
-                  <div style={{
-                    position: 'absolute', bottom: -2, right: -2,
-                    width: 16, height: 16, borderRadius: '50%',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: p.connected === false ? 'var(--danger)' : 'var(--success)',
-                    border: '2px solid var(--surface)'
-                  }}>
-                    {p.connected === false ? <X size={10} color="white" strokeWidth={3} /> : <Check size={10} color="white" strokeWidth={3} />}
-                  </div>
-                </div>
-                <span>{p.nickname}</span>
+        {/* Footer: Answer count */}
+        <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(10px)', border: '1px solid var(--border)', borderRadius: '20px', padding: '0.75rem 2rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <Users size={20} style={{ color: 'var(--primary)' }} />
+                <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{players.length} Người chơi</span>
               </div>
-            ))}
+              <div style={{ width: '1px', height: '20px', background: 'var(--border)' }}></div>
+              <span className="badge badge-success" style={{ fontSize: '1.1rem', padding: '0.5rem 1.25rem' }}>
+                <CheckCircle2 size={18} />
+                {players.filter(p => p.answeredCurrent).length} đã trả lời
+              </span>
           </div>
         </div>
       </div>
@@ -395,45 +384,47 @@ export default function AdminDashboard() {
   if (status === 'result') return (
     <>
       {audioNodes}
-      <div className="admin-screen">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="admin-screen result-stage" style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: '2rem 4rem', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <div>
-            <p className="question-number" style={{ marginBottom: '0.25rem' }}>Kết Quả Câu {(questionData?.index ?? 0) + 1}</p>
-            <p style={{ fontWeight: 800, fontSize: '1.8rem', lineHeight: 1.2 }}>{questionData?.question}</p>
+            <p className="question-number" style={{ marginBottom: '0.5rem', fontSize: '1.1rem', background: 'rgba(255,255,255,0.1)', display: 'inline-block', padding: '0.3rem 1rem', borderRadius: '99px' }}>Kết Quả Câu {(questionData?.index ?? 0) + 1}</p>
+            <h1 style={{ fontWeight: 800, fontSize: '2.2rem', lineHeight: 1.2, color: 'white', marginTop: '0.5rem' }}>{questionData?.question}</h1>
           </div>
-          <div className="badge badge-success" style={{ fontSize: '1rem', padding: '0.75rem 1.5rem' }}>Đã hoàn thành</div>
+          <div className="badge badge-success" style={{ fontSize: '1.1rem', padding: '0.75rem 1.5rem', borderRadius: '16px', fontWeight: 800 }}>
+             CÂU HỎI HOÀN TẤT
+          </div>
         </div>
 
-        <div className="choices-display" style={{ marginBottom: '2rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div className="choices-display" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', width: '100%' }}>
           {questionData?.choices?.map((ch, i) => {
             const isCorrect = i === leaderboardData?.correctAnswer;
             return (
               <div
                 key={i}
                 className={`choice-display-card result-choice ${isCorrect ? 'correct-highlight' : 'wrong-fade'}`}
-                style={{ height: 'auto', padding: '1.5rem' }}
+                style={{ height: 'auto', padding: '2rem', borderRadius: '28px', border: isCorrect ? '4px solid var(--success)' : '2px solid rgba(255,255,255,0.05)' }}
               >
-                <div className="choice-label" style={{ background: isCorrect ? 'var(--success)' : choiceColors[i] }}>
-                  {isCorrect ? <Check size={24} strokeWidth={4} /> : choiceLabels[i]}
+                <div className="choice-label" style={{ background: isCorrect ? 'var(--success)' : choiceColors[i], width: '60px', height: '60px', borderRadius: '16px', fontSize: '1.8rem' }}>
+                  {isCorrect ? <Check size={36} strokeWidth={4} /> : choiceLabels[i]}
                 </div>
-                <span style={{ fontSize: '1.2rem', fontWeight: 700 }}>{ch}</span>
+                <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'white' }}>{ch}</span>
               </div>
             );
           })}
         </div>
 
-        <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 24, padding: '1.5rem' }}>
-          <p style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '1rem' }}>Kết Quả Người Chơi</p>
-          <div className="player-grid">
+        <div style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)', border: '1px solid var(--border)', borderRadius: '32px', padding: '2rem', marginTop: '2rem', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <p style={{ fontWeight: 900, fontSize: '1.4rem', marginBottom: '1.5rem', color: 'var(--primary-light)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Thống kê người chơi</p>
+          <div className="player-grid" style={{ overflowY: 'auto', flex: 1 }}>
             {leaderboardData?.players?.map((p, i) => (
-              <div key={i} className={`player-chip ${p.isCorrect ? 'correct' : 'incorrect'}`} style={{ padding: '0.5rem 1rem' }}>
-                <img src={p.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.nickname}`} alt="" />
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontWeight: 700 }}>{p.nickname}</span>
-                  <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>{p.isCorrect ? `+${p.lastEarned}` : '+0'}</span>
+              <div key={i} className={`player-chip ${p.isCorrect ? 'correct' : 'incorrect'}`} style={{ padding: '0.75rem 1.5rem', borderRadius: '18px', gap: '1rem', background: p.isCorrect ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)' }}>
+                <img src={p.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.nickname}`} alt="" style={{ width: '50px', height: '50px', border: '3px solid white' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontWeight: 800, fontSize: '1.2rem' }}>{p.nickname}</span>
+                  <span style={{ fontSize: '0.9rem', opacity: 0.9, fontWeight: 700 }}>{p.isCorrect ? `+${p.lastEarned} đ` : '+0 đ'}</span>
                 </div>
-                <div className="status-dot">
-                  {p.isCorrect ? <Check size={12} strokeWidth={4} /> : <X size={12} strokeWidth={4} />}
+                <div className="status-dot" style={{ width: '28px', height: '28px' }}>
+                  {p.isCorrect ? <Check size={18} strokeWidth={4} /> : <X size={18} strokeWidth={4} />}
                 </div>
               </div>
             ))}

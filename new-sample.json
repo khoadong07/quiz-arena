@@ -1,0 +1,112 @@
+[
+    {
+        "question": "Tết Nguyên Đán là ngày lễ lớn của người Việt, nhưng nó còn có tên gọi khác nào?",
+        "image": "https://cdn.24h.com.vn/upload/1-2021/images/2021-02-11/0-1612978193-966-width3333height1875.jpg",
+        "choices": [
+            "Tết Trung Thu",
+            "Tết Trung Nguyên",
+            "Tết Cổ Truyền",
+            "Tết Âm Lịch"
+        ],
+        "correct": 3
+    },
+    {
+        "question": "Điệu múa nào được xem là di sản văn hóa phi vật thể của Việt Nam?",
+        "image": "https://cdn.thuvienphapluat.vn/uploads/tintuc/2023/12/30/di-san-van-hoa-phi-vat-the.jpeg",
+        "choices": [
+            "Múa lân",
+            "Múa sạp",
+            "Múa rối nước",
+            "Múa dân tộc"
+        ],
+        "correct": 1
+    },
+    {
+        "question": "Tết Trung Thu của người Việt có ý nghĩa gì?",
+        "image": "https://cellphones.com.vn/sforum/wp-content/uploads/2023/09/tet-trung-thu-la-gi-1.jpg",
+        "choices": [
+            "Lễ hội mừng mùa màng",
+            "Lễ hội của trẻ em",
+            "Lễ hội đoàn tụ gia đình",
+            "Lễ hội của những người lớn tuổi"
+        ],
+        "correct": 1
+    },
+    {
+        "question": "Chợ phiên ở Việt Nam thường diễn ra vào ngày nào trong tuần?",
+        "image": "https://images2.thanhnien.vn/528068263637045248/2024/5/12/chan-trang-1c-1715525604868945618392.jpg",
+        "choices": [
+            "Thứ Hai",
+            "Thứ Tư",
+            "Thứ Bảy",
+            "Chủ Nhật"
+        ],
+        "correct": 2
+    },
+    {
+        "question": "Trang phục truyền thống của phụ nữ Việt Nam là gì?",
+        "image": "https://daivietcophong.com/wp-content/uploads/2023/03/image-4.png",
+        "choices": [
+            "Áo bà ba",
+            "Áo dài",
+            "Áo tứ thân",
+            "Áo nón"
+        ],
+        "correct": 1
+    },
+    {
+        "question": "Lễ hội nào là một trong những lễ hội lớn nhất ở Việt Nam, tổ chức vào mùa xuân?",
+        "image": "https://dulichcanhviet.com.vn/uploads/noidung/images/le-hoi-den-hung.jpg",
+        "choices": [
+            "Lễ hội Cầu Ngư",
+            "Lễ hội đền Hùng",
+            "Lễ hội Chùa Hương",
+            "Lễ hội Phật đản"
+        ],
+        "correct": 1
+    },
+    {
+        "question": "Người Việt Nam thường ăn gì vào buổi sáng để bắt đầu một ngày làm việc?",
+        "image": "https://www.btaskee.com/wp-content/uploads/2023/04/an-sang-voi-trung.jpg",
+        "choices": [
+            "Phở",
+            "Bánh mì",
+            "Cháo",
+            "Xôi"
+        ],
+        "correct": 0
+    },
+    {
+        "question": "Tập tục thờ cúng tổ tiên ở Việt Nam là một trong những nét văn hóa nào?",
+        "image": "https://media-cdn-v2.laodong.vn/storage/newsportal/2019/1/22/653893/5639_Ban-Tho-1.jpg",
+        "choices": [
+            "Nét văn hóa tâm linh",
+            "Nét văn hóa dân gian",
+            "Nét văn hóa lao động",
+            "Nét văn hóa ẩm thực"
+        ],
+        "correct": 0
+    },
+    {
+        "question": "Người Việt thường tổ chức lễ cưới theo những nghi lễ nào?",
+        "image": "https://riversidepalace.vn/newsmultidata/1j.peg",
+        "choices": [
+            "Lễ dạm ngõ, lễ hỏi, lễ cưới",
+            "Lễ cưới, lễ đám hỏi, lễ tiệc",
+            "Lễ báo hỷ, lễ cưới, lễ tiệc",
+            "Lễ chúc mừng, lễ hỏi, lễ cưới"
+        ],
+        "correct": 0
+    },
+    {
+        "question": "Món ăn nào là đặc sản của miền Tây Nam Bộ, nổi tiếng với vị ngọt và chua?",
+        "image": "https://ik.imagekit.io/tvlk/blog/2022/08/dac-san-mien-tay-nam-bo-8.jpeg",
+        "choices": [
+            "Canh chua cá lóc",
+            "Phở",
+            "Bánh mì",
+            "Xôi gà"
+        ],
+        "correct": 0
+    }
+]
