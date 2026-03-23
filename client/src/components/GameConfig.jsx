@@ -46,7 +46,7 @@ export default function GameConfig() {
     const formData = new FormData();
     formData.append('image', file);
     try {
-      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3001/upload`, {
+      const response = await fetch('/upload', {
         method: 'POST',
         body: formData,
       });

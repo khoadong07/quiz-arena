@@ -35,8 +35,8 @@ app.use('/uploads', express.static(uploadDir));
 
 app.post('/upload', upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
-  const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-  res.json({ success: true, url: imageUrl });
+  const relativeUrl = `/uploads/${req.file.filename}`;
+  res.json({ success: true, url: relativeUrl });
 });
 
 // ── Serve Vite build (only when running standalone, not behind Nginx) ──

@@ -13,6 +13,10 @@ export default defineConfig({
 
   server: {
     host: '0.0.0.0',
+    proxy: {
+      '/upload': 'http://localhost:3001',
+      '/uploads': 'http://localhost:3001',
+    }
   },
 
   build: {

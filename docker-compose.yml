@@ -8,6 +8,8 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
+    volumes:
+      - ./server/uploads:/app/uploads
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:3001/health" ]
