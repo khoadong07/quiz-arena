@@ -13,6 +13,32 @@ app.use(compression({ level: 6 }));
 app.use(cors());
 app.use(express.json());
 
+// ── Image Uploads for Configuration ──
+const multer = require('multer');
+const fs = require('fs');
+
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
+
+app.use('/uploads', express.static(uploadDir));
+
+app.post('/upload', upload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+  const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+  res.json({ success: true, url: imageUrl });
+});
+
 // ── Serve Vite build (only when running standalone, not behind Nginx) ──
 // Set SERVE_CLIENT=true if you want Express to serve the frontend directly
 if (process.env.SERVE_CLIENT === 'true') {

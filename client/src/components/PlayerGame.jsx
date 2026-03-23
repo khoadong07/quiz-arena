@@ -321,10 +321,10 @@ export default function PlayerGame() {
           </div>
         ) : (
           <div className="choices-grid" style={{ marginTop: '1rem', flex: 1 }}>
-            <button className="choice-btn choice-a" onClick={() => handleAnswer(0)}>A</button>
-            <button className="choice-btn choice-b" onClick={() => handleAnswer(1)}>B</button>
-            <button className="choice-btn choice-c" onClick={() => handleAnswer(2)}>C</button>
-            <button className="choice-btn choice-d" onClick={() => handleAnswer(3)}>D</button>
+            <button className="choice-btn choice-a notranslate" translate="no" onClick={() => handleAnswer(0)}>A</button>
+            <button className="choice-btn choice-b notranslate" translate="no" onClick={() => handleAnswer(1)}>B</button>
+            <button className="choice-btn choice-c notranslate" translate="no" onClick={() => handleAnswer(2)}>C</button>
+            <button className="choice-btn choice-d notranslate" translate="no" onClick={() => handleAnswer(3)}>D</button>
           </div>
         )}
       </div>

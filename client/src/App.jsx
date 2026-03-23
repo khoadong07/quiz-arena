@@ -5,6 +5,7 @@ import AdminDashboard from './components/AdminDashboard';
 import JoinRoom from './components/JoinRoom';
 import PlayerSetup from './components/PlayerSetup';
 import PlayerGame from './components/PlayerGame';
+import GameConfig from './components/GameConfig';
 import './index.css';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
         <Route path="/join" element={<JoinRoom />} />
         <Route path="/setup" element={<PlayerSetup />} />
         <Route path="/play" element={<PlayerGame />} />
+        <Route path="/configuration" element={<GameConfig />} />
       </Routes>
     </Router>
   );
