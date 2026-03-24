@@ -76,7 +76,7 @@ const io = new Server(server, {
 // In-memory store
 const rooms = {};
 // User mapping to find room by socket.id immediately
-const users = {}; 
+const users = {};
 
 const generateOTP = () => {
   let otp;
@@ -104,7 +104,7 @@ io.on('connection', (socket) => {
       timeLeft: 0,
       timerInterval: null
     };
-    
+
     socket.join(otp);
     callback({ success: true, otp, adminToken });
     console.log(`Room created: ${otp} by admin ${socket.id}`);
@@ -114,7 +114,7 @@ io.on('connection', (socket) => {
     const room = rooms[otp];
     if (room && room.adminToken === adminToken) {
       room.adminId = socket.id;
-      
+
       const currentQ = room.questions[room.currentQuestionIndex];
       const questionData = currentQ ? {
         index: room.currentQuestionIndex,
@@ -132,7 +132,7 @@ io.on('connection', (socket) => {
           countdown: room.status === 'starting' ? 5 : null,
           timeLeft: room.timeLeft,
           questionData,
-          leaderboard: room.status === 'leaderboard' ? [...room.players].sort((a,b) => {
+          leaderboard: room.status === 'leaderboard' ? [...room.players].sort((a, b) => {
             if (b.score !== a.score) return b.score - a.score;
             return (a.totalTime || 0) - (b.totalTime || 0);
           }) : []
@@ -147,10 +147,10 @@ io.on('connection', (socket) => {
   socket.on('join-room', ({ otp, nickname, avatar, sessionId }, callback) => {
     const room = rooms[otp];
     if (!room) return callback({ success: false, message: 'Phòng không tồn tại!' });
-    
+
     // Check if player is reconnecting
     const existingBySession = sessionId ? room.players.find(p => p.sessionId === sessionId) : null;
-    
+
     if (existingBySession) {
       existingBySession.socketId = socket.id;
       existingBySession.avatar = avatar; // Update avatar just in case
@@ -158,19 +158,19 @@ io.on('connection', (socket) => {
       existingBySession.connected = true; // Mark as online
       users[socket.id] = { otp, nickname };
       socket.join(otp);
-      
+
       const currentQ = room.questions[room.currentQuestionIndex];
       const resumeState = {
-        status: room.status, 
+        status: room.status,
         timeLeft: room.timeLeft,
         answeredCurrent: existingBySession.answeredCurrent,
         myResult: existingBySession,
-        leaderboard: ['leaderboard', 'leaderboard-inter'].includes(room.status) ? [...room.players].sort((a,b) => (b.score - a.score)) : [],
+        leaderboard: ['leaderboard', 'leaderboard-inter'].includes(room.status) ? [...room.players].sort((a, b) => (b.score - a.score)) : [],
         questionData: currentQ ? {
-           index: room.currentQuestionIndex,
-           question: currentQ.question,
-           choices: currentQ.choices,
-           time: room.timeLeft 
+          index: room.currentQuestionIndex,
+          question: currentQ.question,
+          choices: currentQ.choices,
+          time: room.timeLeft
         } : null
       };
 
@@ -205,7 +205,7 @@ io.on('connection', (socket) => {
 
     // Notify admin
     io.to(room.adminId).emit('player-joined', room.players);
-    
+
     callback({ success: true });
     console.log(`${nickname} joined room ${otp}`);
   });
@@ -235,7 +235,7 @@ io.on('connection', (socket) => {
 
     setTimeout(() => {
       if (!rooms[roomId] || rooms[roomId].status !== 'reading') return;
-      
+
       // Step 2: Playing stage (20s)
       room.status = 'playing';
       room.timeLeft = 20;
@@ -249,7 +249,7 @@ io.on('connection', (socket) => {
           showResult(roomId);
         }
       }, 1000);
-    }, 3000);
+    }, 8501);
   };
 
   const showResult = (roomId) => {
@@ -258,7 +258,7 @@ io.on('connection', (socket) => {
 
     room.status = 'result';
     const q = room.questions[room.currentQuestionIndex];
-    
+
     // Auto-kick logic: Track missed questions for disconnected players
     room.players.forEach(p => {
       if (!p.answeredCurrent) {
@@ -272,12 +272,12 @@ io.on('connection', (socket) => {
 
     const initialCount = room.players.length;
     room.players = room.players.filter(p => p.connected || p.missedQuestionsCount < 3);
-    
+
     if (room.players.length < initialCount) {
       console.log(`Auto-kicked some inactive players in room ${roomId}`);
       io.to(room.adminId).emit('player-joined', room.players); // Refresh admin list
     }
-    
+
     // Update scores
     room.players.forEach(p => {
       p.isCorrect = (p.currentAnswer === q.correct);
@@ -285,16 +285,16 @@ io.on('connection', (socket) => {
         p.streak = (p.streak || 0) + 1;
         // Simple scoring: 100 base + speed bonus (timeLeft * 10)
         let basePoints = 100 + (p.answerTimeLeft || 0) * 10;
-        
+
         // Streak bonus
         let bonusPct = 0;
         if (p.streak === 2) bonusPct = 0.05;
         else if (p.streak === 3) bonusPct = 0.10;
         else if (p.streak >= 4) bonusPct = 0.15;
-        
+
         const streakBonus = Math.round(basePoints * bonusPct);
         const totalPoints = basePoints + streakBonus;
-        
+
         p.lastEarned = totalPoints;
         p.score += totalPoints;
         p.totalTime = (p.totalTime || 0) + (20 - (p.answerTimeLeft || 0));
@@ -317,7 +317,7 @@ io.on('connection', (socket) => {
     setTimeout(() => {
       if (!rooms[roomId] || rooms[roomId].status !== 'result') return;
       const isLastQuestion = room.currentQuestionIndex === (room.questions?.length - 1);
-      
+
       if (isLastQuestion) {
         showFinalLeaderboard(roomId);
       } else {
@@ -329,13 +329,13 @@ io.on('connection', (socket) => {
   const showFinalLeaderboard = (roomId) => {
     const room = rooms[roomId];
     if (!room) return;
-    
+
     room.status = 'leaderboard';
-    const sortedPlayers = [...room.players].sort((a,b) => {
+    const sortedPlayers = [...room.players].sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return (a.totalTime || 0) - (b.totalTime || 0);
     });
-    
+
     io.to(roomId).emit('game-ended');
     io.to(roomId).emit('show-leaderboard', sortedPlayers);
   };
@@ -343,13 +343,13 @@ io.on('connection', (socket) => {
   const showIntermediateLeaderboard = (roomId) => {
     const room = rooms[roomId];
     if (!room) return;
-    
+
     room.status = 'leaderboard-inter';
-    const sortedPlayers = [...room.players].sort((a,b) => {
+    const sortedPlayers = [...room.players].sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return (a.totalTime || 0) - (b.totalTime || 0);
     });
-    
+
     io.to(roomId).emit('intermediate-leaderboard', sortedPlayers);
   };
 
@@ -371,7 +371,7 @@ io.on('connection', (socket) => {
       room.status = 'starting';
       let countdown = 5;
       io.to(otp).emit('game-starting', countdown);
-      
+
       const countInterval = setInterval(() => {
         countdown--;
         io.to(otp).emit('game-starting', countdown);
@@ -393,7 +393,7 @@ io.on('connection', (socket) => {
       player.answerTimeLeft = room.timeLeft; // Record time left for bonus
       // Tell admin someone answered
       io.to(room.adminId).emit('player-answered', room.players);
-      
+
       const allAnswered = room.players.filter(p => p.connected).every(p => p.answeredCurrent);
       if (allAnswered) {
         clearInterval(room.timerInterval);
@@ -410,7 +410,7 @@ io.on('connection', (socket) => {
         return (a.totalTime || 0) - (b.totalTime || 0);
       });
       io.to(otp).emit('show-leaderboard', sortedPlayers);
-      
+
       // Kill room after game ends to prevent bugs and free memory
       room.players.forEach(p => {
         if (p.socketId && users[p.socketId]) {
@@ -431,7 +431,7 @@ io.on('connection', (socket) => {
         if (player) {
           player.connected = false;
           io.to(room.adminId).emit('player-joined', room.players);
-          
+
           // If game is playing, check if this disconnection makes everyone answered
           if (room.status === 'playing') {
             const allAnswered = room.players.filter(p => p.connected).every(p => p.answeredCurrent);
