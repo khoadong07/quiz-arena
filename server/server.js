@@ -356,12 +356,8 @@ io.on('connection', (socket) => {
   socket.on('next-question', (otp, callback) => {
     const room = rooms[otp];
     if (room && room.adminId === socket.id && room.status === 'leaderboard-inter') {
-      const disconnectedCount = room.players.filter(p => !p.connected).length;
-      if (disconnectedCount > 0) {
-        return callback({ success: false, message: `Còn ${disconnectedCount} người chơi đang mất kết nối. Vui lòng đợi họ quay lại!` });
-      }
       nextQuestion(otp);
-      callback({ success: true });
+      if (typeof callback === 'function') callback({ success: true });
     }
   });
 

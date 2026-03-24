@@ -237,16 +237,7 @@ export default function AdminDashboard() {
             </div>
             <button
               className="btn btn-primary"
-              onClick={() => {
-                const disconnectedCount = players.filter(p => p.connected === false).length;
-                if (disconnectedCount > 0) {
-                  if (confirm(`Có ${disconnectedCount} người chơi đang mất kết nối. Bạn có chắc chắn muốn bắt đầu game không?`)) {
-                    socket.emit('start-game', otp);
-                  }
-                } else {
-                  socket.emit('start-game', otp);
-                }
-              }}
+              onClick={() => socket.emit('start-game', otp)}
               disabled={players.length === 0}
               style={{ width: 'auto', padding: '0.75rem 2rem', borderRadius: '99px' }}
             >
@@ -545,19 +536,13 @@ export default function AdminDashboard() {
           </div>
 
           <div className="admin-footer-controls" style={{ flexDirection: 'column', gap: '1rem' }}>
-            {players.filter(p => p.connected === false).length > 0 && (
-              <div style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--danger)', padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 800, fontSize: '0.95rem', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', gap: '0.75rem', animation: 'fadeIn 0.4s' }}>
-                 <AlertCircle size={20} />
-                 Có {players.filter(p => p.connected === false).length} người chơi đang mất kết nối. Game Master vui lòng đợi họ.
+            {players.filter(p => !p.connected).length > 0 && (
+              <div style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--danger)', padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 800, fontSize: '0.92rem', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', gap: '0.75rem', animation: 'fadeIn 0.4s' }}>
+                <AlertCircle size={20} />
+                <span>Có {players.filter(p => !p.connected).length} người chơi mất kết nối. Game Master có thể đợi hoặc nhấn TIẾP TỤC.</span>
               </div>
             )}
-            <button className="btn btn-primary next-btn-large" onClick={() => {
-              socket.emit('next-question', otp, (res) => {
-                if (!res.success) {
-                   alert(res.message);
-                }
-              });
-            }} style={{ background: players.filter(p => p.connected === false).length > 0 ? '#4b5563' : undefined, borderColor: players.filter(p => p.connected === false).length > 0 ? '#6b7280' : undefined }}>
+            <button className="btn btn-primary next-btn-large" onClick={() => socket.emit('next-question', otp)}>
               TIẾP TỤC <Play size={24} fill="currentColor" />
             </button>
           </div>
