@@ -161,9 +161,11 @@ io.on('connection', (socket) => {
       
       const currentQ = room.questions[room.currentQuestionIndex];
       const resumeState = {
-        status: room.status, // waiting, starting, playing, ended, leaderboard
+        status: room.status, 
         timeLeft: room.timeLeft,
         answeredCurrent: existingBySession.answeredCurrent,
+        myResult: existingBySession,
+        leaderboard: ['leaderboard', 'leaderboard-inter'].includes(room.status) ? [...room.players].sort((a,b) => (b.score - a.score)) : [],
         questionData: currentQ ? {
            index: room.currentQuestionIndex,
            question: currentQ.question,
@@ -351,10 +353,15 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('intermediate-leaderboard', sortedPlayers);
   };
 
-  socket.on('next-question', (otp) => {
+  socket.on('next-question', (otp, callback) => {
     const room = rooms[otp];
     if (room && room.adminId === socket.id && room.status === 'leaderboard-inter') {
+      const disconnectedCount = room.players.filter(p => !p.connected).length;
+      if (disconnectedCount > 0) {
+        return callback({ success: false, message: `Còn ${disconnectedCount} người chơi đang mất kết nối. Vui lòng đợi họ quay lại!` });
+      }
       nextQuestion(otp);
+      callback({ success: true });
     }
   });
 

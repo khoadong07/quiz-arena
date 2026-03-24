@@ -119,6 +119,11 @@ export default function PlayerGame() {
           setStatus(res.resumeState.status);
           setTimeLeft(res.resumeState.timeLeft || 60);
           setQuestionData(res.resumeState.questionData);
+          if (res.resumeState.myResult) {
+            setMyResult(res.resumeState.myResult);
+            setMyScore(res.resumeState.myResult.score);
+          }
+          if (res.resumeState.leaderboard) setLeaderboard(res.resumeState.leaderboard);
           if (res.resumeState.answeredCurrent) setSelectedAnswer(-1);
         }
         setIsConnected(true);
@@ -139,6 +144,11 @@ export default function PlayerGame() {
               setStatus(res.resumeState.status);
               setTimeLeft(res.resumeState.timeLeft || 60);
               setQuestionData(res.resumeState.questionData);
+              if (res.resumeState.myResult) {
+                setMyResult(res.resumeState.myResult);
+                setMyScore(res.resumeState.myResult.score);
+              }
+              if (res.resumeState.leaderboard) setLeaderboard(res.resumeState.leaderboard);
               if (res.resumeState.answeredCurrent) setSelectedAnswer(-1);
            }
         });

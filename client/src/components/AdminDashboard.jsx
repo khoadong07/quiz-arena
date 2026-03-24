@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import { Users, Play, Trophy, Clock, CheckCircle2, Check, X, LogOut, TrendingUp } from 'lucide-react';
+import { Users, Play, Trophy, Clock, CheckCircle2, Check, X, LogOut, TrendingUp, AlertCircle } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { socket } from '../socket';
 import bg from '../assets/1.jpg';
@@ -237,7 +237,16 @@ export default function AdminDashboard() {
             </div>
             <button
               className="btn btn-primary"
-              onClick={() => socket.emit('start-game', otp)}
+              onClick={() => {
+                const disconnectedCount = players.filter(p => p.connected === false).length;
+                if (disconnectedCount > 0) {
+                  if (confirm(`Có ${disconnectedCount} người chơi đang mất kết nối. Bạn có chắc chắn muốn bắt đầu game không?`)) {
+                    socket.emit('start-game', otp);
+                  }
+                } else {
+                  socket.emit('start-game', otp);
+                }
+              }}
               disabled={players.length === 0}
               style={{ width: 'auto', padding: '0.75rem 2rem', borderRadius: '99px' }}
             >
@@ -342,33 +351,39 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Question Area */}
-        <div style={{ textAlign: 'center', width: '100%' }}>
-          <h1 style={{ fontWeight: 800, fontSize: '1.5rem', lineHeight: 1.4, color: 'white', width: '100%', margin: '0', textShadow: '0 2px 8px rgba(0,0,0,0.4)', background: 'rgba(255,255,255,0.03)', padding: '1rem 2rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-            {questionData?.question}
-          </h1>
-          <div className="timer-bar-wrapper" style={{ height: '6px', width: '100%', background: 'rgba(255,255,255,0.05)', margin: '0.75rem 0' }}>
-            <div style={{ height: '100%', width: `${timerPct}%`, background: timerColor, borderRadius: 99, transition: 'width 1s linear' }} />
+        {/* Main Game Layout: 2 Columns */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.2fr)', gap: '4rem', flex: 1, minHeight: 0, padding: '1rem 0' }}>
+          
+          {/* Left Column: Image Section */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '32px', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+            {questionData?.image ? (
+              <img src={questionData.image} alt="minh hoạ" style={{ maxHeight: '60vh', maxWidth: '95%', borderRadius: '16px', objectFit: 'contain', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }} />
+            ) : (
+               <div style={{ opacity: 0.1 }}><Users size={160} /></div>
+            )}
           </div>
-        </div>
 
-        {/* Image Section */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
-          {questionData?.image ? (
-            <img src={questionData.image} alt="minh hoạ" style={{ maxHeight: '35vh', maxWidth: '90%', borderRadius: '24px', objectFit: 'contain', border: '4px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }} />
-          ) : (
-             <div style={{ opacity: 0.1 }}><Users size={120} /></div>
-          )}
-        </div>
-
-        {/* Footer: Choices */}
-        <div className="choices-display" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%', margin: '0' }}>
-          {questionData?.choices?.map((ch, i) => (
-            <div key={i} className="choice-display-card" style={{ padding: '1rem 1.5rem', fontSize: '1.4rem', borderRadius: '16px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)' }}>
-              <div className="choice-label notranslate" translate="no" style={{ background: choiceColors[i], width: '44px', height: '44px', fontSize: '1.4rem', borderRadius: '10px', fontWeight: 900 }}>{choiceLabels[i]}</div>
-              <span style={{ fontWeight: 700, color: 'white' }}>{ch}</span>
+          {/* Right Column: Question + Choices */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div style={{ background: 'rgba(255,255,255,0.04)', padding: '2.5rem', borderRadius: '32px', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
+              <h1 style={{ fontWeight: 850, fontSize: '2.4rem', lineHeight: 1.3, color: 'white', margin: '0' }}>
+                {questionData?.question}
+              </h1>
+              <div className="timer-bar-wrapper" style={{ height: '8px', width: '100%', background: 'rgba(255,255,255,0.05)', marginTop: '2rem' }}>
+                <div style={{ height: '100%', width: `${timerPct}%`, background: timerColor, borderRadius: 99, transition: 'width 1s linear' }} />
+              </div>
             </div>
-          ))}
+
+            <div className="choices-display" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.25rem', width: '100%', margin: '0' }}>
+              {questionData?.choices?.map((ch, i) => (
+                <div key={i} className="choice-display-card" style={{ padding: '1.25rem 1.75rem', fontSize: '1.6rem', borderRadius: '20px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', transition: '0.3s' }}>
+                  <div className="choice-label notranslate" translate="no" style={{ background: choiceColors[i], width: '50px', height: '50px', fontSize: '1.6rem', borderRadius: '14px', fontWeight: 900 }}>{choiceLabels[i]}</div>
+                  <span style={{ fontWeight: 700, color: 'white' }}>{ch}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       </div>
     </>
@@ -487,20 +502,27 @@ export default function AdminDashboard() {
                 const movedUp = prevRank !== undefined && i < prevRank;
                 const movedDown = prevRank !== undefined && i > prevRank;
 
+                const playerStatus = players.find(player => player.nickname === p.nickname);
+                const isConnected = playerStatus ? playerStatus.connected !== false : true;
+
                 return (
                   <div
                     key={p.nickname}
-                    className={`leaderboard-row-new ${movedUp ? 'glow-up' : ''}`}
+                    className={`leaderboard-row-new ${movedUp ? 'glow-up' : ''} ${!isConnected ? 'player-offline-row' : ''}`}
                     style={{
                       transform: `translateY(${i * 80}px)`,
                       zIndex: 10 - i,
-                      transition: 'transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s, box-shadow 0.3s'
+                      transition: 'transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s, box-shadow 0.3s',
+                      opacity: isConnected ? 1 : 0.6
                     }}
                   >
                     <div className="rank-col" style={{ position: 'relative' }}>
                       <span className={`rank-circle rank-${i + 1}`}>{i + 1}</span>
                       {movedUp && <div className="rank-indicator up">▲</div>}
                       {movedDown && <div className="rank-indicator down">▼</div>}
+                      {!isConnected && (
+                         <div style={{ position: 'absolute', top: -5, right: -5, background: 'var(--danger)', width: 12, height: 12, borderRadius: '50%', border: '2px solid white', animation: 'pulsate 1s infinite' }} title="Mất kết nối" />
+                      )}
                     </div>
                     <div className="avatar-col">
                       <img src={p.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.nickname}`} alt="" className="player-avatar-lg" />
@@ -522,8 +544,20 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="admin-footer-controls">
-            <button className="btn btn-primary next-btn-large" onClick={() => socket.emit('next-question', otp)}>
+          <div className="admin-footer-controls" style={{ flexDirection: 'column', gap: '1rem' }}>
+            {players.filter(p => p.connected === false).length > 0 && (
+              <div style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--danger)', padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 800, fontSize: '0.95rem', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', gap: '0.75rem', animation: 'fadeIn 0.4s' }}>
+                 <AlertCircle size={20} />
+                 Có {players.filter(p => p.connected === false).length} người chơi đang mất kết nối. Game Master vui lòng đợi họ.
+              </div>
+            )}
+            <button className="btn btn-primary next-btn-large" onClick={() => {
+              socket.emit('next-question', otp, (res) => {
+                if (!res.success) {
+                   alert(res.message);
+                }
+              });
+            }} style={{ background: players.filter(p => p.connected === false).length > 0 ? '#4b5563' : undefined, borderColor: players.filter(p => p.connected === false).length > 0 ? '#6b7280' : undefined }}>
               TIẾP TỤC <Play size={24} fill="currentColor" />
             </button>
           </div>
@@ -533,6 +567,8 @@ export default function AdminDashboard() {
         .fullscreen-leaderboard { height: 100vh; width: 100vw; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 2rem; }
         .leaderboard-container { width: 100%; max-width: 1000px; animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
         .leaderboard-header { text-align: center; margin-bottom: 3rem; }
+        .player-offline-row { background: rgba(239,68,68,0.1) !important; border-color: rgba(239,68,68,0.2) !important; }
+        @keyframes pulsate { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
         .trophy-icon { color: #fbbf24; filter: drop-shadow(0 0 20px rgba(251,191,36,0.5)); margin-bottom: 1rem; }
         .leaderboard-title { font-size: 3rem; font-weight: 900; color: white; letter-spacing: 0.1rem; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         
