@@ -86,7 +86,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (bgMusicRef.current) {
-      if (['reading', 'playing', 'time-up'].includes(status)) bgMusicRef.current.play().catch(() => { });
+      if (status === 'playing') bgMusicRef.current.play().catch(() => { });
       else { bgMusicRef.current.pause(); bgMusicRef.current.currentTime = 0; }
     }
     if (winMusicRef.current) {

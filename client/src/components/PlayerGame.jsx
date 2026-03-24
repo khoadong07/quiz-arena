@@ -48,7 +48,11 @@ export default function PlayerGame() {
   const { state } = useLocation();
   const navigate = useNavigate();
 
-  const [sessionData, setSessionData] = useState(state);
+  const [sessionData, setSessionData] = useState(() => {
+    if (state) return state;
+    const saved = localStorage.getItem('khoot_session');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [status, setStatus] = useState('waiting');
   const [countdown, setCountdown] = useState(5);
   const [questionData, setQuestionData] = useState(null);
@@ -62,6 +66,7 @@ export default function PlayerGame() {
   const [myScore, setMyScore] = useState(0);
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [isJoining, setIsJoining] = useState(true);
 
   const bgMusicRef = useRef(null);
   const winMusicRef = useRef(null);
@@ -75,7 +80,7 @@ export default function PlayerGame() {
 
   useEffect(() => {
     if (bgMusicRef.current) {
-      if (['reading', 'playing', 'time-up'].includes(status)) bgMusicRef.current.play().catch(() => { });
+      if (status === 'playing') bgMusicRef.current.play().catch(() => { });
       else { bgMusicRef.current.pause(); bgMusicRef.current.currentTime = 0; }
     }
     if (winMusicRef.current) {
@@ -96,19 +101,20 @@ export default function PlayerGame() {
 
   // Main socket setup
   useEffect(() => {
-    let currentSession = state;
+    let currentSession = sessionData;
     if (!currentSession) {
-      const saved = localStorage.getItem('khoot_session');
-      if (saved) { currentSession = JSON.parse(saved); setSessionData(currentSession); }
-      else { navigate('/join'); return; }
+      navigate('/join'); 
+      return; 
     }
 
     const connectAndJoin = (session) => {
+      setIsJoining(true);
       if (!socket.connected) {
         socket.connect();
       }
       
       socket.emit('join-room', session, (res) => {
+        setIsJoining(false);
         if (!res.success) {
           alert(res.message);
           localStorage.removeItem('khoot_session');
@@ -118,13 +124,21 @@ export default function PlayerGame() {
         if (res.isReconnected && res.resumeState) {
           setStatus(res.resumeState.status);
           setTimeLeft(res.resumeState.timeLeft || 60);
-          setQuestionData(res.resumeState.questionData);
           if (res.resumeState.myResult) {
             setMyResult(res.resumeState.myResult);
             setMyScore(res.resumeState.myResult.score);
           }
           if (res.resumeState.leaderboard) setLeaderboard(res.resumeState.leaderboard);
-          if (res.resumeState.answeredCurrent) setSelectedAnswer(-1);
+          
+          if (res.resumeState.answeredCurrent) {
+            setSelectedAnswer(-1);
+          } else {
+            setSelectedAnswer(null);
+          }
+          
+          if (res.resumeState.questionData) {
+            setQuestionData(res.resumeState.questionData);
+          }
         }
         setIsConnected(true);
         setIsReconnecting(false);
@@ -149,7 +163,14 @@ export default function PlayerGame() {
                 setMyScore(res.resumeState.myResult.score);
               }
               if (res.resumeState.leaderboard) setLeaderboard(res.resumeState.leaderboard);
-              if (res.resumeState.answeredCurrent) setSelectedAnswer(-1);
+          if (res.resumeState.answeredCurrent) {
+            setSelectedAnswer(-1);
+          } else {
+            setSelectedAnswer(null);
+          }
+          if (res.resumeState.questionData) {
+            setQuestionData(res.resumeState.questionData);
+          }
            }
         });
       }
@@ -290,7 +311,7 @@ export default function PlayerGame() {
   };
 
   const renderConnectionOverlay = () => {
-    if (isConnected && !isReconnecting) return null;
+    if (isConnected || !isReconnecting) return null;
     
     return (
       <div className="connection-overlay">
@@ -314,6 +335,15 @@ export default function PlayerGame() {
       </div>
     );
   };
+
+  // === Loading Screen ===
+  if (isJoining) return (
+    <div className="screen-center">
+      <Loader2 size={64} className="spin" style={{ color: 'var(--primary)' }} />
+      <p className="text-muted" style={{ marginTop: '1.5rem', fontWeight: 600 }}>Đang đồng bộ dữ liệu...</p>
+      <style>{`.spin { animation: spin 1.5s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 
   // === Persistent Header ===
   const headerNode = (
