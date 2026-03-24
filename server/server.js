@@ -67,8 +67,8 @@ const io = new Server(server, {
     methods: ['GET', 'POST'],
   },
   // Socket.IO performance tuning
-  pingInterval: 10000,
-  pingTimeout: 5000,
+  pingInterval: 25000,
+  pingTimeout: 45000,
   maxHttpBufferSize: 1e7, // 10MB limit
   transports: ['websocket', 'polling'],
 });

@@ -60,6 +60,8 @@ export default function PlayerGame() {
   const [resultData, setResultData] = useState(null);
   const [myResult, setMyResult] = useState(null);
   const [myScore, setMyScore] = useState(0);
+  const [isConnected, setIsConnected] = useState(socket.connected);
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   const bgMusicRef = useRef(null);
   const winMusicRef = useRef(null);
@@ -101,21 +103,68 @@ export default function PlayerGame() {
       else { navigate('/join'); return; }
     }
 
-    socket.connect();
-    socket.emit('join-room', currentSession, (res) => {
-      if (!res.success) {
-        alert(res.message);
-        localStorage.removeItem('khoot_session');
-        navigate('/');
-        return;
+    const connectAndJoin = (session) => {
+      if (!socket.connected) {
+        socket.connect();
       }
-      if (res.isReconnected && res.resumeState) {
-        setStatus(res.resumeState.status);
-        setTimeLeft(res.resumeState.timeLeft || 60);
-        setQuestionData(res.resumeState.questionData);
-        if (res.resumeState.answeredCurrent) setSelectedAnswer(-1);
+      
+      socket.emit('join-room', session, (res) => {
+        if (!res.success) {
+          alert(res.message);
+          localStorage.removeItem('khoot_session');
+          navigate('/');
+          return;
+        }
+        if (res.isReconnected && res.resumeState) {
+          setStatus(res.resumeState.status);
+          setTimeLeft(res.resumeState.timeLeft || 60);
+          setQuestionData(res.resumeState.questionData);
+          if (res.resumeState.answeredCurrent) setSelectedAnswer(-1);
+        }
+        setIsConnected(true);
+        setIsReconnecting(false);
+      });
+    };
+
+    connectAndJoin(currentSession);
+
+    const onConnect = () => {
+      console.log('Socket connected');
+      setIsConnected(true);
+      setIsReconnecting(false);
+      // Re-join room on reconnection
+      if (currentSession) {
+        socket.emit('join-room', currentSession, (res) => {
+           if (res.success && res.isReconnected && res.resumeState) {
+              setStatus(res.resumeState.status);
+              setTimeLeft(res.resumeState.timeLeft || 60);
+              setQuestionData(res.resumeState.questionData);
+              if (res.resumeState.answeredCurrent) setSelectedAnswer(-1);
+           }
+        });
       }
-    });
+    };
+
+    const onDisconnect = (reason) => {
+      console.log('Socket disconnected:', reason);
+      setIsConnected(false);
+      // Only set reconnecting if it wasn't a deliberate disconnect
+      if (reason === 'io server disconnect' || reason === 'io client disconnect') {
+         // deliberate
+      } else {
+         setIsReconnecting(true);
+      }
+    };
+
+    const onConnectError = (error) => {
+      console.error('Connection error:', error);
+      setIsConnected(false);
+      setIsReconnecting(true);
+    };
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
 
     const timerInterval = setInterval(() => setTimeLeft(p => p > 0 ? p - 1 : 0), 1000);
 
@@ -161,6 +210,9 @@ export default function PlayerGame() {
       socket.off('game-starting'); socket.off('question-reading'); socket.off('question-playing');
       socket.off('question-result'); socket.off('intermediate-leaderboard');
       socket.off('game-ended'); socket.off('show-leaderboard'); socket.off('room-closed');
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onConnectError);
     };
   }, [navigate]);
 
@@ -227,6 +279,32 @@ export default function PlayerGame() {
     );
   };
 
+  const renderConnectionOverlay = () => {
+    if (isConnected && !isReconnecting) return null;
+    
+    return (
+      <div className="connection-overlay">
+        <div className="connection-card">
+          <Loader2 size={48} className="spin-slow" style={{ color: 'var(--primary)', marginBottom: '1.5rem' }} />
+          <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>Mất kết nối</h3>
+          <p className="text-muted" style={{ marginBottom: '1.5rem' }}>Đang cố gắng kết nối lại để bạn có thể tiếp tục chơi...</p>
+          <div className="loading-bar">
+            <div className="loading-progress" />
+          </div>
+        </div>
+        <style>{`
+          .connection-overlay { position: fixed; inset: 0; background: rgba(10,14,30,0.9); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 100000; animation: fadeIn 0.4s ease; }
+          .connection-card { background: #1a1b26; width: 90%; max-width: 400px; padding: 3rem 2rem; border-radius: 32px; text-align: center; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 40px 80px rgba(0,0,0,0.6); }
+          .spin-slow { animation: spin 2s linear infinite; }
+          .loading-bar { height: 6px; width: 100%; background: rgba(255,255,255,0.05); border-radius: 99px; overflow: hidden; }
+          .loading-progress { height: 100%; width: 40%; background: var(--primary); border-radius: 99px; animation: loadingSwipe 1.5s infinite ease-in-out; }
+          @keyframes loadingSwipe { 0% { transform: translateX(-100%); width: 30%; } 50% { width: 60%; } 100% { transform: translateX(300%); width: 30%; } }
+          @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        `}</style>
+      </div>
+    );
+  };
+
   // === Persistent Header ===
   const headerNode = (
     <div className="player-header">
@@ -244,7 +322,8 @@ export default function PlayerGame() {
   if (status === 'waiting') return (
     <>
       {audioNodes}
-      {showExitConfirm && exitModalNode}
+      {renderConnectionOverlay()}
+      {renderExitConfirm()}
       {headerNode}
       <div className="screen-center" style={{ flex: 1, paddingTop: '2rem', backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="card" style={{ textAlign: 'center', gap: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -264,7 +343,8 @@ export default function PlayerGame() {
   if (status === 'starting') return (
     <>
       {audioNodes}
-      {showExitConfirm && exitModalNode}
+      {renderConnectionOverlay()}
+      {renderExitConfirm()}
       {headerNode}
       <div className="screen-center" style={{ flex: 1, backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div style={{ textAlign: 'center' }}>
@@ -279,7 +359,8 @@ export default function PlayerGame() {
   if (status === 'reading') return (
     <>
       {audioNodes}
-      {showExitConfirm && exitModalNode}
+      {renderConnectionOverlay()}
+      {renderExitConfirm()}
       {headerNode}
       <div className="screen-center" style={{ flex: 1, backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover' }}>
         <div style={{ textAlign: 'center' }}>
@@ -295,7 +376,8 @@ export default function PlayerGame() {
   if (status === 'playing' || status === 'time-up') return (
     <>
       {audioNodes}
-      {showExitConfirm && exitModalNode}
+      {renderConnectionOverlay()}
+      {renderExitConfirm()}
       {headerNode}
       <div className="screen" style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="game-header" style={{ marginTop: '0.5rem' }}>
@@ -336,7 +418,8 @@ export default function PlayerGame() {
   if (status === 'result') return (
     <>
       {audioNodes}
-      {showExitConfirm && exitModalNode}
+      {renderConnectionOverlay()}
+      {renderExitConfirm()}
       {headerNode}
       <div className={`screen-center result-screen ${myResult?.isCorrect ? 'correct' : 'incorrect'}`} style={{ flex: 1 }}>
         <div className="result-card">
@@ -403,6 +486,7 @@ export default function PlayerGame() {
     return (
       <>
         {audioNodes}
+        {renderConnectionOverlay()}
         {renderExitConfirm()}
         {headerNode}
         <div className="screen-center" style={{ flex: 1, backgroundImage: `linear-gradient(rgba(10,14,30,0.8), rgba(10,14,30,0.95)), url(${bg})`, backgroundSize: 'cover' }}>
@@ -430,7 +514,8 @@ export default function PlayerGame() {
   if (status === 'ended') return (
     <>
       {audioNodes}
-      {showExitConfirm && exitModalNode}
+      {renderConnectionOverlay()}
+      {renderExitConfirm()}
       {headerNode}
       <div className="screen-center" style={{ flex: 1 }}>
         <div className="card" style={{ textAlign: 'center' }}>
@@ -451,6 +536,7 @@ export default function PlayerGame() {
     return (
       <>
         {audioNodes}
+        {renderConnectionOverlay()}
         {renderExitConfirm()}
         {headerNode}
         <div className="screen" style={{ gap: '1.25rem' }}>
