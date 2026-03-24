@@ -249,7 +249,7 @@ io.on('connection', (socket) => {
           showResult(roomId);
         }
       }, 1000);
-    }, 8501);
+    }, 3001);
   };
 
   const showResult = (roomId) => {

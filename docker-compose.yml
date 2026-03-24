@@ -5,7 +5,7 @@ services:
       context: server
       dockerfile: Dockerfile
     ports:
-      - "8501:3001"
+      - "3001:3001"
     environment:
       - NODE_ENV=production
     volumes:
@@ -23,7 +23,7 @@ services:
       context: client
       dockerfile: Dockerfile
     ports:
-      - "19000:80"
+      - "18009:80"
     restart: unless-stopped
     depends_on:
       - server
