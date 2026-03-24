@@ -73,6 +73,38 @@ export default function GameConfig() {
     document.body.removeChild(link);
   };
 
+  const handleLoadJSON = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const jsonData = JSON.parse(event.target.result);
+        if (Array.isArray(jsonData)) {
+          // Basic validation
+          const validData = jsonData.map(q => ({
+            question: q.question || '',
+            choices: Array.isArray(q.choices) ? q.choices.slice(0, 4) : ['', '', '', ''],
+            correct: typeof q.correct === 'number' ? q.correct : 0,
+            image: q.image || ''
+          }));
+          
+          if (confirm(`Tìm thấy ${validData.length} câu hỏi. Bạn có muốn thay thế danh sách hiện tại bằng dữ liệu từ file không?`)) {
+            setQuestions(validData);
+          }
+        } else {
+          alert('Định dạng file không hợp lệ! File phải chứa một mảng các câu hỏi.');
+        }
+      } catch (err) {
+        console.error('JSON parse error:', err);
+        alert('Lỗi khi đọc file JSON! Vui lòng kiểm tra lại định dạng file.');
+      }
+      e.target.value = ''; // Reset input
+    };
+    reader.readAsText(file);
+  };
+
   if (!authorized) {
     return (
       <div className="screen-center">
@@ -110,6 +142,10 @@ export default function GameConfig() {
             <p className="text-muted">Tạo mới và chỉnh sửa dữ liệu trò chơi của bạn</p>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <label className="btn btn-ghost" style={{ width: 'auto', padding: '0 1.5rem', cursor: 'pointer' }}>
+              <Upload size={20} /> LOAD FILE JSON
+              <input type="file" hidden accept=".json,application/json" onChange={handleLoadJSON} />
+            </label>
             <button className="btn btn-primary" onClick={handleSave} style={{ width: 'auto', padding: '0 1.5rem' }}>
               <Save size={20} /> LƯU FILE JSON
             </button>
