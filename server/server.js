@@ -124,20 +124,8 @@ io.on('connection', (socket) => {
         time: room.timeLeft
       } : null;
 
-      callback({
-        success: true,
-        room: {
-          status: room.status,
-          players: room.players,
-          countdown: room.status === 'starting' ? 5 : null,
-          timeLeft: room.timeLeft,
-          questionData,
-          leaderboard: room.status === 'leaderboard' ? [...room.players].sort((a, b) => {
-            if (b.score !== a.score) return b.score - a.score;
-            return (a.totalTime || 0) - (b.totalTime || 0);
-          }) : []
-        }
-      });
+      const allImages = room.questions.map(q => q.image).filter(Boolean);
+      callback({ success: true, isReconnected: true, resumeState, allImages });
       console.log(`Admin rejoined room ${otp}`);
     } else {
       callback({ success: false, message: 'Invalid admin token' });
@@ -150,6 +138,7 @@ io.on('connection', (socket) => {
 
     // Check if player is reconnecting
     const existingBySession = sessionId ? room.players.find(p => p.sessionId === sessionId) : null;
+    const allImages = room.questions.map(q => q.image).filter(Boolean);
 
     if (existingBySession) {
       existingBySession.socketId = socket.id;
@@ -175,7 +164,7 @@ io.on('connection', (socket) => {
       };
 
       io.to(room.adminId).emit('player-joined', room.players); // Notify admin of reconnect
-      return callback({ success: true, isReconnected: true, resumeState });
+      return callback({ success: true, isReconnected: true, resumeState, allImages });
     }
 
     // Prevent duplicate name for new players
@@ -206,7 +195,7 @@ io.on('connection', (socket) => {
     // Notify admin
     io.to(room.adminId).emit('player-joined', room.players);
 
-    callback({ success: true });
+    callback({ success: true, allImages });
     console.log(`${nickname} joined room ${otp}`);
   });
 

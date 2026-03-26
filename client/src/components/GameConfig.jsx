@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Save, Plus, Trash2, Eye, Download, Upload, Image as ImageIcon } from 'lucide-react';
+import { imageCache } from '../utils/imageCache';
 
 export default function GameConfig() {
   const [password, setPassword] = useState('');
@@ -53,6 +54,7 @@ export default function GameConfig() {
       const data = await response.json();
       if (data.success) {
         updateQuestion(index, 'image', data.url);
+        imageCache.preload([data.url]);
       }
     } catch (err) {
       console.error('Upload error:', err);
@@ -92,6 +94,8 @@ export default function GameConfig() {
           
           if (confirm(`Tìm thấy ${validData.length} câu hỏi. Bạn có muốn thay thế danh sách hiện tại bằng dữ liệu từ file không?`)) {
             setQuestions(validData);
+            const imageUrls = validData.map(q => q.image).filter(Boolean);
+            imageCache.preload(imageUrls);
           }
         } else {
           alert('Định dạng file không hợp lệ! File phải chứa một mảng các câu hỏi.');

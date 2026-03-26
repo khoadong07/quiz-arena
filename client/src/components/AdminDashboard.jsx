@@ -5,6 +5,8 @@ import { Users, Play, Trophy, Clock, CheckCircle2, Check, X, LogOut, TrendingUp,
 import Confetti from 'react-confetti';
 import { socket } from '../socket';
 import bg from '../assets/1.jpg';
+import { imageCache } from '../utils/imageCache';
+import { audioCache } from '../utils/audioCache';
 
 // Helper component for counting points
 function ScoreCounter({ target, lastEarned }) {
@@ -72,12 +74,25 @@ export default function AdminDashboard() {
   const prevPlayersCountRef = useRef(0);
 
   useEffect(() => {
+    // Preload ALL music files once otp is available
+    if (otp) {
+      audioCache.preload([
+        theme1, 
+        theme2, 
+        lobbyMusicFile, 
+        cheerMusicFile, 
+        countdownMusicFile
+      ]);
+    }
+  }, [otp]);
+
+  useEffect(() => {
     if (status === 'waiting') {
       const onlinePlayers = players.filter(p => p.connected !== false).length;
       if (onlinePlayers > prevPlayersCountRef.current) {
         if (lobbyMusicRef.current) {
           lobbyMusicRef.current.currentTime = 0;
-          lobbyMusicRef.current.play().catch(() => { });
+          lobbyMusicRef.current.play().catch(err => console.warn('[Audio] Failed to play join sound:', err));
         }
       }
       prevPlayersCountRef.current = onlinePlayers;
@@ -86,8 +101,16 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (bgMusicRef.current) {
-      if (status === 'playing') bgMusicRef.current.play().catch(() => { });
-      else { bgMusicRef.current.pause(); bgMusicRef.current.currentTime = 0; }
+      // Background music flows from starting through reading until playing
+      if (['starting', 'reading', 'playing'].includes(status)) {
+        if (bgMusicRef.current.paused) {
+          bgMusicRef.current.currentTime = 0;
+          bgMusicRef.current.play().catch(err => console.warn('[Audio] Play blocked by browser:', err));
+        }
+      } else { 
+        bgMusicRef.current.pause(); 
+        bgMusicRef.current.currentTime = 0; 
+      }
     }
     if (winMusicRef.current) {
       if (status === 'leaderboard') winMusicRef.current.play().catch(() => { });
@@ -119,6 +142,11 @@ export default function AdminDashboard() {
           if (r.questionData) setQuestionData(r.questionData);
           if (r.status === 'leaderboard') setLeaderboard(r.leaderboard);
           if (r.status === 'starting' && r.countdown) setCountdown(r.countdown);
+          
+          // Preload images if we have questions
+          if (res.allImages) {
+            imageCache.preload(res.allImages);
+          }
         }
       });
     }
@@ -129,6 +157,8 @@ export default function AdminDashboard() {
       setStatus('reading');
       setQuestionData(qData);
       setCountdown(3);
+      // Pre-emptively ensure this question's image is cached
+      if (qData.image) imageCache.preload([qData.image]);
     });
     socket.on('question-playing', qData => {
       setStatus('playing');
@@ -229,6 +259,11 @@ export default function AdminDashboard() {
               Truy cập <strong style={{ color: 'var(--text)' }}>{window.location.host}/join</strong>
             </p>
           </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <TrendingUp size={16} style={{ color: 'var(--primary)', animation: 'pulse 1s infinite alternate' }} />
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Audio Ready</span>
+            </div>
 
           <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

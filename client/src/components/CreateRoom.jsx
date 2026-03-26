@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Play, ArrowLeft, CheckCircle2, Users } from 'lucide-react';
 import { socket } from '../socket';
+import { imageCache } from '../utils/imageCache';
 
 export default function CreateRoom() {
   const [maxPlayers, setMaxPlayers] = useState(50);
@@ -19,6 +20,9 @@ export default function CreateRoom() {
         const json = JSON.parse(event.target.result);
         if (Array.isArray(json) && json.length > 0) {
           setQuestions(json);
+          // Preload images immediately when JSON is loaded
+          const imageUrls = json.map(q => q.image).filter(Boolean);
+          imageCache.preload(imageUrls);
         } else {
           alert('File JSON không hợp lệ. Đảm bảo file là một mảng các câu hỏi.');
         }

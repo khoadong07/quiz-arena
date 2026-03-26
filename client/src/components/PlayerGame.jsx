@@ -4,6 +4,7 @@ import { LogOut, CheckCircle, Clock, Loader2, X } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { socket } from '../socket';
 import bg from '../assets/19.jpg';
+import { imageCache } from '../utils/imageCache';
 
 // Helper component for counting points
 function ScoreCounter({ target, lastEarned }) {
@@ -139,6 +140,10 @@ export default function PlayerGame() {
           if (res.resumeState.questionData) {
             setQuestionData(res.resumeState.questionData);
           }
+          
+          if (res.allImages) {
+            imageCache.preload(res.allImages);
+          }
         }
         setIsConnected(true);
         setIsReconnecting(false);
@@ -163,14 +168,14 @@ export default function PlayerGame() {
                 setMyScore(res.resumeState.myResult.score);
               }
               if (res.resumeState.leaderboard) setLeaderboard(res.resumeState.leaderboard);
-          if (res.resumeState.answeredCurrent) {
-            setSelectedAnswer(-1);
-          } else {
-            setSelectedAnswer(null);
-          }
-          if (res.resumeState.questionData) {
-            setQuestionData(res.resumeState.questionData);
-          }
+              if (res.resumeState.answeredCurrent) {
+                setSelectedAnswer(-1);
+              } else {
+                setSelectedAnswer(null);
+              }
+              if (res.allImages) {
+                imageCache.preload(res.allImages);
+              }
            }
         });
       }
@@ -206,6 +211,7 @@ export default function PlayerGame() {
       setCountdown(3);
       setSelectedAnswer(null);
       setResultData(null);
+      if (qData.image) imageCache.preload([qData.image]);
     });
     socket.on('question-playing', qData => {
       setStatus('playing');
@@ -405,7 +411,10 @@ export default function PlayerGame() {
       <div className="screen-center" style={{ flex: 1, backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover' }}>
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ fontSize: '1.2rem', fontWeight: 700, opacity: 0.8, marginBottom: '0.5rem' }}>Câu {(questionData?.index ?? 0) + 1}</h2>
-          <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '2rem' }}>{questionData?.question}</h1>
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '1.5rem' }}>{questionData?.question}</h1>
+          {questionData?.image && (
+            <img src={questionData.image} alt="" style={{ maxWidth: '90%', maxHeight: '30vh', borderRadius: '12px', marginBottom: '1.5rem', boxShadow: '0 8px 16px rgba(0,0,0,0.3)' }} />
+          )}
           <p className="text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}>Chuẩn bị chọn...</p>
         </div>
       </div>
@@ -434,6 +443,12 @@ export default function PlayerGame() {
             transition: 'width 1s linear, background 1s'
           }} />
         </div>
+
+        {questionData?.image && selectedAnswer === null && (
+          <div style={{ padding: '0 1.25rem', marginTop: '1rem', display: 'flex', justifyContent: 'center' }}>
+            <img src={questionData.image} alt="" style={{ maxWidth: '100%', maxHeight: '20vh', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }} />
+          </div>
+        )}
 
         {selectedAnswer !== null ? (
           <div className="answered-view" style={{ flex: 1 }}>
