@@ -125,7 +125,21 @@ io.on('connection', (socket) => {
       } : null;
 
       const allImages = room.questions.map(q => q.image).filter(Boolean);
-      callback({ success: true, isReconnected: true, resumeState, allImages });
+      callback({
+        success: true,
+        allImages,
+        room: {
+          status: room.status,
+          players: room.players,
+          countdown: room.status === 'starting' ? 5 : null,
+          timeLeft: room.timeLeft,
+          questionData,
+          leaderboard: room.status === 'leaderboard' ? [...room.players].sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return (a.totalTime || 0) - (b.totalTime || 0);
+          }) : []
+        }
+      });
       console.log(`Admin rejoined room ${otp}`);
     } else {
       callback({ success: false, message: 'Invalid admin token' });
