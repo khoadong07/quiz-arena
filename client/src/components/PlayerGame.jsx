@@ -374,7 +374,7 @@ export default function PlayerGame() {
       <div className="screen-center" style={{ flex: 1, paddingTop: '2rem', backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="card" style={{ textAlign: 'center', gap: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Loader2 size={48} style={{ color: 'var(--primary)', animation: 'spin 1.2s linear infinite' }} />
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Đã vào phòng!</h2>
+          <h2 style={{ fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', fontWeight: 800 }}>Đã vào phòng!</h2>
           <p className="text-muted" style={{ fontSize: '0.9rem' }}>Đang chờ Gamemaster bắt đầu...</p>
           <div style={{ marginTop: '0.5rem' }}>
             <span className="badge badge-warning">CODE: {sessionData?.otp}</span>
@@ -408,14 +408,14 @@ export default function PlayerGame() {
       {renderConnectionOverlay()}
       {renderExitConfirm()}
       {headerNode}
-      <div className="screen-center" style={{ flex: 1, backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover' }}>
-        <div style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 700, opacity: 0.8, marginBottom: '0.5rem' }}>Câu {(questionData?.index ?? 0) + 1}</h2>
-          <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: questionData?.image ? '1.5rem' : '2rem' }}>{questionData?.question}</h1>
+      <div className="screen-center" style={{ flex: 1, backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover', overflowY: 'auto' }}>
+        <div style={{ textAlign: 'center', padding: '1.5rem 1.25rem', maxWidth: '440px', width: '100%' }}>
+          <h2 style={{ fontSize: 'clamp(0.9rem, 3vw, 1.2rem)', fontWeight: 700, opacity: 0.8, marginBottom: '0.5rem' }}>Câu {(questionData?.index ?? 0) + 1}</h2>
+          <h1 style={{ fontSize: 'clamp(1.3rem, 5vw, 1.8rem)', fontWeight: 800, marginBottom: questionData?.image ? '1.25rem' : '1.75rem', lineHeight: 1.3 }}>{questionData?.question}</h1>
           {questionData?.image && (
-            <img src={questionData.image} alt="" style={{ maxWidth: '90%', maxHeight: '30vh', borderRadius: '12px', marginBottom: '1.5rem', boxShadow: '0 8px 16px rgba(0,0,0,0.3)' }} />
+            <img src={questionData.image} alt="" style={{ maxWidth: '100%', maxHeight: '28vh', borderRadius: '12px', marginBottom: '1.25rem', boxShadow: '0 8px 16px rgba(0,0,0,0.3)', objectFit: 'contain' }} />
           )}
-          <p className="text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}>Chuẩn bị chọn...</p>
+          <p className="text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.85rem' }}>Chuẩn bị chọn...</p>
         </div>
       </div>
     </>
@@ -428,13 +428,18 @@ export default function PlayerGame() {
       {renderConnectionOverlay()}
       {renderExitConfirm()}
       {headerNode}
-      <div className="screen" style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-        <div className="game-header" style={{ marginTop: '0.5rem' }}>
+      <div className="screen" style={{
+        display: 'flex', flexDirection: 'column', flex: 1,
+        backgroundImage: `linear-gradient(rgba(10,14,30,0.70), rgba(10,14,30,0.80)), url(${bg})`,
+        backgroundSize: 'cover', backgroundPosition: 'center',
+        overflow: 'hidden'
+      }}>
+        <div className="game-header" style={{ marginTop: '0.25rem', flexShrink: 0 }}>
           <span className="question-number">Câu {(questionData?.index ?? 0) + 1}</span>
-          <span className="timer-display" style={{ color: timerColor }}>{timeLeft}s</span>
+          <span className="timer-display" style={{ color: timerColor, fontSize: 'clamp(1.3rem, 5vw, 1.7rem)' }}>{timeLeft}s</span>
         </div>
 
-        <div className="timer-bar-wrapper">
+        <div className="timer-bar-wrapper" style={{ flexShrink: 0 }}>
           <div style={{
             height: '100%',
             width: `${timerPct}%`,
@@ -446,12 +451,12 @@ export default function PlayerGame() {
 
         {selectedAnswer !== null ? (
           <div className="answered-view" style={{ flex: 1 }}>
-            <Loader2 className="spin" size={64} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Đã ghi nhận!</h3>
+            <Loader2 className="spin" size={56} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
+            <h3 style={{ fontSize: 'clamp(1.1rem, 4vw, 1.4rem)', fontWeight: 800 }}>Đã ghi nhận!</h3>
             <p className="text-muted">Chờ mọi người trả lời...</p>
           </div>
         ) : (
-          <div className="choices-grid" style={{ marginTop: '1rem', flex: 1 }}>
+          <div className="choices-grid" style={{ marginTop: '0.75rem', flex: 1, minHeight: 0 }}>
             <button className="choice-btn choice-a notranslate" translate="no" onClick={() => handleAnswer(0)}>A</button>
             <button className="choice-btn choice-b notranslate" translate="no" onClick={() => handleAnswer(1)}>B</button>
             <button className="choice-btn choice-c notranslate" translate="no" onClick={() => handleAnswer(2)}>C</button>
@@ -497,21 +502,23 @@ export default function PlayerGame() {
         .result-screen { transition: background 0.5s ease; }
         .result-screen.correct { background: var(--success); color: white; }
         .result-screen.incorrect { background: var(--danger); color: white; }
-        .result-card { text-align: center; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .result-card { text-align: center; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); padding: 0 1.5rem; }
+        
+        .result-icon svg { width: clamp(56px, 18vw, 80px); height: clamp(56px, 18vw, 80px); }
         
         .player-score-container { position: relative; margin-top: 1rem; }
-        .points-added-big { font-size: 4rem; font-weight: 950; margin-top: 1rem; animation: pointPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .points-added-big small { font-size: 1.5rem; opacity: 0.7; }
+        .points-added-big { font-size: clamp(2.5rem, 10vw, 4rem); font-weight: 950; margin-top: 1rem; animation: pointPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .points-added-big small { font-size: 1.3rem; opacity: 0.7; }
         @keyframes pointPop { 0% { transform: scale(0.5) translateY(20px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
         
-        .player-total-score { font-size: 3rem; font-weight: 900; background: rgba(0,0,0,0.15); padding: 0.5rem 2rem; border-radius: 99px; display: inline-block; font-variant-numeric: tabular-nums; }
-        .player-total-score small { font-size: 1.2rem; opacity: 0.7; }
+        .player-total-score { font-size: clamp(2rem, 8vw, 3rem); font-weight: 900; background: rgba(0,0,0,0.15); padding: 0.5rem 2rem; border-radius: 99px; display: inline-block; font-variant-numeric: tabular-nums; }
+        .player-total-score small { font-size: 1.1rem; opacity: 0.7; }
         
         .player-delta-badge { 
           position: absolute; right: -20px; top: -30px;
           background: #34d399; color: white;
           padding: 0.4rem 1.2rem; border-radius: 12px;
-          font-size: 1.8rem; font-weight: 900;
+          font-size: 1.6rem; font-weight: 900;
           box-shadow: 0 10px 25px rgba(0,0,0,0.2);
           animation: playerFlyUp 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
@@ -521,7 +528,7 @@ export default function PlayerGame() {
           15% { transform: translateY(0) scale(1.2); opacity: 1; }
           100% { transform: translateY(-60px) scale(1); opacity: 0; }
         }
-        .streak-badge { font-size: 1.2rem; font-weight: 900; background: #fbbf24; color: #000; padding: 0.4rem 1.2rem; border-radius: 99px; display: inline-block; animation: shake 0.5s ease infinite alternate; }
+        .streak-badge { font-size: 1.1rem; font-weight: 900; background: #fbbf24; color: #000; padding: 0.4rem 1.2rem; border-radius: 99px; display: inline-block; animation: shake 0.5s ease infinite alternate; }
         @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         @keyframes shake { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
       `}</style>

@@ -231,7 +231,7 @@ export default function AdminDashboard() {
   }, [questionData?.index]);
 
   const joinUrl = `${window.location.protocol}//${window.location.host}/join?otp=${otp}`;
-  const maxPlayers = 50;
+  const maxPlayers = 100;
   const timerColor = timeLeft > 10 ? 'var(--success)' : timeLeft > 5 ? 'var(--warning)' : 'var(--danger)';
   const timerPct = Math.round((timeLeft / 20) * 100);
   const medals = ['🥇', '🥈', '🥉'];

@@ -5,7 +5,7 @@ import { socket } from '../socket';
 import { imageCache } from '../utils/imageCache';
 
 export default function CreateRoom() {
-  const [maxPlayers, setMaxPlayers] = useState(50);
+  const [maxPlayers, setMaxPlayers] = useState(100);
   const [questions, setQuestions] = useState(null);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
