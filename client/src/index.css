@@ -63,7 +63,7 @@ body {
   display: flex;
   flex-direction: column;
   padding-top: calc(1.25rem + var(--safe-top));
-  padding-bottom: calc(1.25rem + var(--safe-bottom));
+  padding-bottom: max(15%, calc(1.25rem + var(--safe-bottom)));
   padding-left: calc(1.25rem + var(--safe-left));
   padding-right: calc(1.25rem + var(--safe-right));
   overflow-y: auto;
