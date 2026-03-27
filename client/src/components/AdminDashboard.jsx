@@ -139,6 +139,20 @@ export default function AdminDashboard() {
     return () => window.removeEventListener('popstate', h);
   }, []);
 
+  // ── Space → Next question (prevent scroll) ──
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault(); // chặn scroll trang
+        if (status === 'leaderboard-inter') {
+          socket.emit('next-question', otp);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [status, otp]);
+
   useEffect(() => {
     socket.connect();
 
@@ -624,6 +638,7 @@ export default function AdminDashboard() {
             )}
             <button className="btn btn-primary next-btn-large" onClick={() => socket.emit('next-question', otp)}>
               TIẾP TỤC <Play size={24} fill="currentColor" />
+              <span style={{ marginLeft: '0.75rem', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(255,255,255,0.2)', padding: '0.2rem 0.6rem', borderRadius: '6px', letterSpacing: '0.05em' }}>SPACE</span>
             </button>
           </div>
         </div>
