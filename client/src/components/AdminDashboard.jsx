@@ -238,9 +238,7 @@ export default function AdminDashboard() {
   const choiceColors = ['var(--choice-a)', 'var(--choice-b)', 'var(--choice-c)', 'var(--choice-d)'];
   const choiceLabels = ['A', 'B', 'C', 'D'];
 
-  const THEMES = [theme1, theme2];
-  const seed = otp.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const currentTheme = THEMES[seed % 2];
+  const currentTheme = theme1; // Cố định: Late Night Talk Show Music
 
   const audioNodes = (
     <>
