@@ -47,6 +47,7 @@ import theme2 from "../audio/theme/Cinematic Rock Racing by Infraction [No Copyr
 import lobbyMusicFile from "../audio/online/Cinematic Rock Racing by Infraction [No Copyright Music] _ Riders.mp3";
 import cheerMusicFile from "../audio/cheer/CROWD CHEER SOUND EFFECT.mp3";
 import countdownMusicFile from "../audio/theme/countdown.mp3";
+import calvinHarrisFile from "../audio/theme/Calvin Harris - Outside (Lyrics) ft. Ellie Goulding.mp3";
 
 export default function AdminDashboard() {
   const { otp } = useParams();
@@ -55,6 +56,7 @@ export default function AdminDashboard() {
   const winMusicRef = useRef(null);
   const lobbyMusicRef = useRef(null);
   const countdownMusicRef = useRef(null);
+  const waitingMusicRef = useRef(null);
   const [players, setPlayers] = useState([]);
   const [status, setStatus] = useState('waiting');
   const [countdown, setCountdown] = useState(5);
@@ -88,6 +90,10 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (status === 'waiting') {
+      // Play Calvin Harris on the QR lobby screen
+      if (waitingMusicRef.current && waitingMusicRef.current.paused) {
+        waitingMusicRef.current.play().catch(err => console.warn('[Audio] Waiting music blocked:', err));
+      }
       const onlinePlayers = players.filter(p => p.connected !== false).length;
       if (onlinePlayers > prevPlayersCountRef.current) {
         if (lobbyMusicRef.current) {
@@ -96,6 +102,12 @@ export default function AdminDashboard() {
         }
       }
       prevPlayersCountRef.current = onlinePlayers;
+    } else {
+      // Stop waiting music when game starts
+      if (waitingMusicRef.current) {
+        waitingMusicRef.current.pause();
+        waitingMusicRef.current.currentTime = 0;
+      }
     }
   }, [players, status]);
 
@@ -233,6 +245,7 @@ export default function AdminDashboard() {
   const audioNodes = (
     <>
       <div style={{ display: 'none' }}>
+        <audio ref={waitingMusicRef} src={calvinHarrisFile} loop preload="auto" />
         <audio ref={lobbyMusicRef} src={lobbyMusicFile} preload="auto" />
         <audio ref={bgMusicRef} src={currentTheme} loop preload="auto" />
         <audio ref={winMusicRef} src={cheerMusicFile} preload="auto" />
@@ -246,73 +259,107 @@ export default function AdminDashboard() {
   if (status === 'waiting') return (
     <>
       {audioNodes}
-      <div className="admin-screen" style={{ backgroundImage: `linear-gradient(rgba(10,14,30,0.72), rgba(10,14,30,0.82)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
-        <div className="admin-hero" style={{ alignItems: 'center', textAlign: 'center', padding: '2rem 1.25rem' }}>
-          <div className="qr-box" style={{ marginBottom: '1.5rem', padding: '1.5rem', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
-            <QRCodeSVG value={joinUrl} size={220} />
+      <div style={{
+        width: '100vw', height: '100vh', display: 'grid',
+        gridTemplateColumns: '400px 1fr',
+        backgroundImage: `linear-gradient(rgba(10,14,30,0.75), rgba(10,14,30,0.85)), url(${bg})`,
+        backgroundSize: 'cover', backgroundPosition: 'center',
+        overflow: 'hidden'
+      }}>
+
+        {/* ── LEFT COLUMN: QR + Code + Controls ── */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: '2rem 1.5rem', borderRight: '1px solid rgba(255,255,255,0.07)',
+          background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)', gap: '1.5rem'
+        }}>
+          {/* QR Code */}
+          <div style={{ background: 'white', borderRadius: '20px', padding: '1rem', boxShadow: '0 12px 40px rgba(0,0,0,0.4)' }}>
+            <QRCodeSVG value={joinUrl} size={200} />
           </div>
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>Game Code</p>
-            <div className="code-display" style={{ fontSize: '4rem', lineHeight: 1 }}>{otp}</div>
-            <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>
-              Truy cập <strong style={{ color: 'var(--text)' }}>{window.location.host}/join</strong>
+          {/* Game Code */}
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.4rem' }}>Game Code</p>
+            <div style={{ fontSize: '3.5rem', fontWeight: 900, letterSpacing: '0.15em', color: 'white', lineHeight: 1, textShadow: '0 0 30px rgba(99,102,241,0.5)' }}>{otp}</div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.6rem' }}>
+              {window.location.host}/join
             </p>
           </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <TrendingUp size={16} style={{ color: 'var(--primary)', animation: 'pulse 1s infinite alternate' }} />
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Audio Ready</span>
-            </div>
+          {/* Music indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(99,102,241,0.1)', padding: '0.4rem 1rem', borderRadius: '99px', border: '1px solid rgba(99,102,241,0.2)' }}>
+            <span style={{ fontSize: '1rem' }}>🎵</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-light)' }}>Calvin Harris – Outside</span>
+          </div>
 
-          <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Users size={20} style={{ color: 'var(--primary)' }} />
-              <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>{players.length} / {maxPlayers} tham gia</span>
+          {/* Player count + Start button */}
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
+              <Users size={18} style={{ color: 'var(--primary)' }} />
+              <span style={{ fontWeight: 700, fontSize: '1rem' }}>{players.length} / {maxPlayers} người chơi</span>
             </div>
             <button
               className="btn btn-primary"
               onClick={() => socket.emit('start-game', otp)}
               disabled={players.length === 0}
-              style={{ width: 'auto', padding: '0.75rem 2rem', borderRadius: '99px' }}
+              style={{ borderRadius: '14px', padding: '0.85rem', fontSize: '1.1rem', fontWeight: 800 }}
             >
               <Play size={20} /> Bắt Đầu
             </button>
           </div>
         </div>
 
-        {players.length > 0 ? (
-          <>
-            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
-              Danh sách người chơi
-            </p>
-            <div className="player-grid">
+        {/* ── RIGHT COLUMN: Player Grid ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', padding: '2rem 2.5rem', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+            <p style={{ fontSize: '1rem', fontWeight: 800, color: 'white', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Danh sách người chơi</p>
+            <span style={{ fontSize: '0.85rem', background: 'rgba(99,102,241,0.15)', color: 'var(--primary-light)', padding: '0.3rem 0.9rem', borderRadius: '99px', fontWeight: 700, border: '1px solid rgba(99,102,241,0.25)' }}>
+              {players.length} tham gia
+            </span>
+          </div>
+
+          {players.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', alignContent: 'start' }}>
               {players.map((p, i) => (
-                <div key={i} className="player-chip">
-                  <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <img src={p.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.nickname}`} alt="" />
+                <div key={i} style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: '16px', padding: '1rem 0.5rem',
+                  transition: 'all 0.3s', animation: 'playerPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both'
+                }}>
+                  <div style={{ position: 'relative' }}>
+                    <img
+                      src={p.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.nickname}`}
+                      alt=""
+                      style={{ width: '56px', height: '56px', borderRadius: '14px', border: `2px solid ${p.connected === false ? 'var(--danger)' : 'var(--success)'}` }}
+                    />
                     <div style={{
-                      position: 'absolute', bottom: -2, right: -2,
-                      width: 16, height: 16, borderRadius: '50%',
+                      position: 'absolute', bottom: -4, right: -4,
+                      width: 18, height: 18, borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: p.connected === false ? 'var(--danger)' : 'var(--success)',
-                      border: '2px solid var(--surface)'
+                      border: '2px solid #0a0e1e'
                     }}>
                       {p.connected === false ? <X size={10} color="white" strokeWidth={3} /> : <Check size={10} color="white" strokeWidth={3} />}
                     </div>
                   </div>
-                  <span>{p.nickname}</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'white', textAlign: 'center', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 0.25rem' }}>{p.nickname}</span>
                 </div>
               ))}
             </div>
-          </>
-        ) : (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', opacity: 0.4, paddingTop: '1rem' }}>
-            <Users size={48} />
-            <p style={{ fontWeight: 600 }}>Đang chờ người chơi tham gia...</p>
-          </div>
-        )}
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', opacity: 0.3 }}>
+              <Users size={64} />
+              <p style={{ fontWeight: 600, fontSize: '1.1rem' }}>Đang chờ người chơi tham gia...</p>
+            </div>
+          )}
+        </div>
       </div>
+      <style>{`
+        @keyframes playerPop { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }
+      `}</style>
     </>
   );
 
